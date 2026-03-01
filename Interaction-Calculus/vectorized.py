@@ -12,49 +12,42 @@ class VectorizedIC(StaticIC):
         self.redex_count = 0
         
     def find_all_redexes(self, start_term):
-        # We simulate the WHNF traversal finding all parallel active pairs (redexes).
-        # In a true NPU it would evaluate the graph edges continuously, 
-        # but here we do a sweep.
-        
-        visited = set()
-        stack = [start_term]
         self.redex_count = 0
         
-        # Simple tree/graph search for interactions
-        # This is strictly a bridge to find interactions to simulate NPU parallel execution
-        # An actual GPU/NPU representation implies tracking edges explicitly.
+        # In a real TPU execution setting, you would compute active redexes 
+        # using parallel array boolean masking over the entire heap.
+        # This python loop simulates that full sweep.
         
-        def check_interaction(loc):
-            if loc in visited: return
-            visited.add(loc)
-            
+        for loc in range(1, self.heap_pos):
             term = self.heap[loc]
             tag = self.get_tag(term)
             
             if tag == APP:
-                fun = self.heap[loc]
-                arg = self.heap[loc+1]
-                fun_tag = self.get_tag(fun)
+                fun_loc = self.get_val(term)
+                fun_term = self.heap[fun_loc]
+                
+                # Resolve substitution pointers
+                while self.get_tag(fun_term) == VAR and self.is_sub(self.heap[self.get_val(fun_term)]):
+                    fun_term = self.clear_sub(self.heap[self.get_val(fun_term)])
+                    
+                fun_tag = self.get_tag(fun_term)
                 if fun_tag in [LAM, ERA] or self.is_sup(fun_tag):
-                    self.active_redexes_l[self.redex_count] = loc      # APP loc
-                    self.active_redexes_r[self.redex_count] = self.get_val(fun) # interacting fn
+                    self.active_redexes_l[self.redex_count] = loc
+                    self.active_redexes_r[self.redex_count] = self.get_val(fun_term) if fun_tag == LAM else self.get_val(fun_term)
                     self.redex_count += 1
-                else:
-                    check_interaction(self.get_val(fun))
-                    check_interaction(self.get_val(arg))
                     
             elif self.is_dup(tag):
-                val = self.heap[loc]
-                val_tag = self.get_tag(val)
-                if val_tag in [LAM, ERA, NUM] or self.is_sup(val_tag):
-                    self.active_redexes_l[self.redex_count] = loc      # DUP loc
-                    self.active_redexes_r[self.redex_count] = self.get_val(val)
-                    self.redex_count += 1
-                else:
-                    check_interaction(self.get_val(val))
+                val_loc = self.get_val(term)
+                val_term = self.heap[val_loc]
+                
+                while self.get_tag(val_term) == VAR and self.is_sub(self.heap[self.get_val(val_term)]):
+                    val_term = self.clear_sub(self.heap[self.get_val(val_term)])
                     
-            # ... and so on for SUC and SWI
-            # This is complex to extract from the WHNF tree implicitly.
+                val_tag = self.get_tag(val_term)
+                if val_tag in [LAM, ERA, NUM] or self.is_sup(val_tag):
+                    self.active_redexes_l[self.redex_count] = loc
+                    self.active_redexes_r[self.redex_count] = self.get_val(val_term)
+                    self.redex_count += 1
             
     def step_vectorized(self):
         # The goal is to perform rules simultaneously
