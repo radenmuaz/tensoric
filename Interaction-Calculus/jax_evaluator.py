@@ -6,7 +6,7 @@ from staticic import APP, LAM
 
 # For memory safety on CPU compiling JIT, we constrain MAX_NODES
 # A TPU with 16GB HBM could easily handle 33M.
-JAX_MAX_NODES = 1000000 
+JAX_MAX_NODES = 8000000 
 
 @jax.jit
 def scan_jax_core(state, _):
