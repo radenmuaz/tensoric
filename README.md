@@ -3,7 +3,7 @@
 [![JAX](https://img.shields.io/badge/JAX-Powered-blue)](https://github.com/google/jax)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**TensorIC** is an experimental port of the [Interaction Calculus](https://github.com/Interaction-Calculus/Interaction-Calculus) graph rewrite system to a vectorized, static-array formulation using **[JAX](https://github.com/google/jax)**.
+**TensorIC** is an experimental port of the [Interaction Calculus](https://github.com/Interaction-Calculus/Interaction-Calculus) graph rewrite system to a vectorized, static-array formulation using **[JAX](https://github.com/google/jax)**. Made with Google Antigravity.
 
 The goal of this project is to explore whether Turing-complete symbolic evaluation—which traditionally relies on dynamic heap allocation, pointers, and asynchronous recursion—can be flattened into fixed-shape, pre-allocated tensor operations suitable for modern hardware accelerators (GPUs & TPUs).
 
@@ -67,9 +67,7 @@ This is a research prototype. There are significant engineering hurdles before t
 2. **Dense Masking vs Sparse Graphs:** The vectorized evaluator checks the *entire array* iteratively (`jnp.where`) looking for active combinations (`APP` + `LAM`). This means $O(N)$ scanning over the heap even if there are sparse localized active redexes.
 3. **Garbage Collection Bottleneck:** Unreferenced IC nodes accumulate rapidly. The prototype pure JAX garbage collector (`jax_gc_research.py`) requires a deep fixed-point array prefix-sum iteration which halts the TPU computation pipeline for expensive sweeping logic.
 
-## 🤝 Contributing (PRs Welcome!)
-
-We are exploring the intersection of **Programming Language Theory (PLT)** and **Tensor Compaction**, and we'd love your help! Whether it's adding a new feature or simply fixing a bug, **Pull Requests are explicitly welcome.**
+## 🤝 Contributing
 
 Here are some high-impact areas where contributions would be amazing:
 
@@ -86,3 +84,16 @@ Here are some high-impact areas where contributions would be amazing:
 ### 🚀 Applications & Differentiability
 - **Reinforcement Learning:** Using TensorIC to compile an entire RL simulation environment into a static GPU graph.
 - **Continuous Logic:** Developing differentiable extensions to the IC substitution rules recursively natively, allowing gradients to backpropagate through symbolic reductions.
+
+## 📖 Citation
+
+If you use TensorIC in your research, please cite:
+
+```bibtex
+@software{muaz_tensoric_2026,
+  author = {Muaz, Raden},
+  title = {TensorIC: Interaction Calculus on Accelerators},
+  url = {https://github.com/radenmuaz/tensoric},
+  year = {2026}
+}
+```
