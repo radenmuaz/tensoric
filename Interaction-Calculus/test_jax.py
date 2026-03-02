@@ -11,11 +11,29 @@ term = parse_file(ic, file_path)
 print("Initial Term:")
 print(print_term(ic, term))
 
+steps = 10
+for arg in sys.argv:
+    if arg.startswith("--steps="):
+        steps = int(arg.split("=")[1])
+
+print(f"Warming up JIT compiler for {steps} steps...")
+import jax, jax.numpy as jnp
+from jax_evaluator import compiled_scan, JAX_MAX_NODES
+import time
+start_jit = time.time()
+dummy_state = (jnp.zeros(10, dtype=jnp.uint32), jnp.uint32(0)) # JAX shape polymorphism caches on static shape. Wait, JAX_MAX_NODES is static. 
+# We MUST use the exact shape JAX_MAX_NODES otherwise it compiles twice!
+dummy_state = (jnp.zeros(JAX_MAX_NODES, dtype=jnp.uint32), jnp.uint32(0))
+warmup, _ = compiled_scan(dummy_state, steps)
+warmup[0].block_until_ready()
+jit_time = time.time() - start_jit
+print(f"JIT Compilation Time: {jit_time:.5f}s")
+
 start = time.time()
 while True:
     prev_interactions = ic.interactions
-    # Scan 10 steps at a time directly on the GPU
-    if not ic.run_scan(steps=10):
+    # Scan N steps at a time directly on the GPU
+    if not ic.run_scan(steps=steps):
         break
     if ic.interactions == prev_interactions:
         print("Graph contains unsupported Vectorized Redexes. Halting.")

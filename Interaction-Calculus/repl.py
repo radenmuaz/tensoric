@@ -167,15 +167,37 @@ def run_file(filename):
         ic = JaxIC()
         term = parse_string(ic, ic_source)
         
+        steps = 5000
+        for arg in sys.argv:
+            if arg.startswith("--steps="):
+                steps = int(arg.split("=")[1])
+                
+        import jax, jax.numpy as jnp
+        from jax_evaluator import scan_jax_core, JAX_MAX_NODES
+        import time
+        start_jit = time.time()
+        print(f"Warming up JIT compiler for {steps} steps...", end="", flush=True)
+        dummy_state = (jnp.zeros(JAX_MAX_NODES, dtype=jnp.uint32), jnp.uint32(0))
+        warmup, _ = jax.lax.scan(scan_jax_core, dummy_state, None, length=steps)
+        warmup[0].block_until_ready()
+        jit_time = time.time() - start_jit
+        print(f" (Done in {jit_time:.5f}s)")
+
+        start_exec = time.time()
         use_gc = "--gc" in sys.argv
         if use_gc:
             has_inters = True
             while has_inters:
-                has_inters, term = ic.run_scan(steps=5000, gc=True, root_term=term)
-                # JAX scan only handles APP-LAM natively in the MVP.
-                # If it finishes, the python normalizer takes over the rest (DUP, SWI).
-        
+                has_inters, term = ic.run_scan(steps=steps, gc=True, root_term=term)
+        else:
+            has_inters = True
+            while has_inters:
+                has_inters = ic.run_scan(steps=steps)
+                
         term = ic.ic_normal(term)
+        exec_time = time.time() - start_exec
+        print(f"Execution Time (Exclusive JIT): {exec_time:.5f}s")
+        print(f"Total Time (Inclusive JIT): {jit_time + exec_time:.5f}s")
         raw_out = print_term(ic, term)
         last_out = decode_ic(raw_out)
         print("=>", last_out)

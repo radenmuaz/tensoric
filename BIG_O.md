@@ -54,6 +54,18 @@ Writing a vectorized queue native to JAX involves:
 
 Because substitutions link variable paths randomly, tracing the `Alive Mask` $B$ explicitly over the flat array requires converging an explicit `jax.lax.while_loop` across `B`. While theoretically dropping the python $O(A)$ tracking dictionary bottlenecks entirely for a pure parallel matrix evaluation mapping $O(\log n)$, XLA inherently struggles resolving deep dynamic branching bounds matching recursive substitution queues sequentially on AI accelerators.
 
+## 5. XLA Recompilation Constraints (JIT Tracing)
+
+A common question when mapping JAX evaluation algorithms across recurrent structures is whether calling `jax.lax.scan(scan_jax_core, ...)` inside a Python `while` loop re-triggers the expensive XLA JIT compilation trace indefinitely.
+
+The answer is **NO**. Under JAX semantics, a `@jax.jit` compiled function compiles exactly **once** upon its first execution and caches the optimized MLIR module in memory natively.
+
+However, XLA compilation caches are bound explicitly to **Static Shapes**. JAX will implicitly force a completely new compilation trace if and only if:
+1. The size of the Input arrays changes (e.g., passing a `256MB` heap first, then a `128MB` heap later). This is why `JAX_MAX_NODES` is fixed dynamically globally.
+2. The static lengths passed into `lax.scan(length=steps)` change dynamically. 
+
+By fixing the `steps` hyperparameter upfront inside `repl.py` (`ic.run_scan(steps=N)`), the evaluation loop merely dispatches the exact same pre-compiled TPU shader block repeatedly, adding $0$ seconds of compilation overhead on subsequent loop executions natively!
+
 ---
 
 ## Conclusion

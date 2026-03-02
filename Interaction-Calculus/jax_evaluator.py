@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 import numpy as np
+from functools import partial
 from vectorized import VectorizedIC
 from staticic import APP, LAM
 
@@ -8,7 +9,7 @@ from staticic import APP, LAM
 # A TPU with 16GB HBM could easily handle 33M.
 # Python 256MB Array mapped to 67M elements
 JAX_MAX_NODES = 67108864
-@jax.jit
+
 def scan_jax_core(state, _):
     heap, interactions = state
     
@@ -41,6 +42,10 @@ def scan_jax_core(state, _):
     inters = jnp.sum(app_lam_mask, dtype=jnp.uint32)
     return (heap, interactions + inters), inters
 
+@partial(jax.jit, static_argnums=(1,))
+def compiled_scan(state, steps):
+    return jax.lax.scan(scan_jax_core, state, None, length=steps)
+
 class JaxIC(VectorizedIC):
     def __init__(self, size=JAX_MAX_NODES):
         super().__init__(size)
@@ -59,7 +64,7 @@ class JaxIC(VectorizedIC):
             self.jax_heap = jnp.array(self.heap)
             
         state = (self.jax_heap, jnp.uint32(0))
-        final_state, step_interactions = jax.lax.scan(scan_jax_core, state, None, length=steps)
+        final_state, step_interactions = compiled_scan(state, steps)
         self.jax_heap, scanned_inters = final_state
         
         self.heap = np.array(self.jax_heap)
