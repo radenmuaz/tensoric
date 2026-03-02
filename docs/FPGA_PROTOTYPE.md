@@ -39,18 +39,14 @@ The entire IC graph lives in the FPGA's on-chip Block RAM (BRAM).
 *   **Structure:** An array of 1,024 words, where each word is a 32-bit tuple (Main Port Pointer [16 bits] + Aux Port Pointer [16 bits]).
 *   **Why Dual-Port?** Dual-port BRAM allows the hardware to read/write two memory addresses per clock cycle simultaneously. This is the absolute minimum requirement to process an interaction (which inherently involves modifying at least two connected nodes).
 
-### B. Execution Fabric: The Active Mesh (Parallel vs Sequential)
-There are two ways to build the execution logic:
+### B. Execution Fabric: Array-Based / Systolic Evaluator (Mirroring TensorIC)
+Instead of a standard CPU-like Finite State Machine (FSM) that sequentially steps through memory, the FPGA should physically mirror TensorIC's vectorized `jax.lax.scan` architecture.
 
-1.  **The Sequential Scanner (V1 Recommended):**
-    *   A centralized finite state machine (FSM) linearly scans the BRAM address space.
-    *   When it finds an active pair (a redex, e.g., `LAM` pointing to `APP`), it pauses the scan, fetches the surrounding nodes, applies the rewrite logic in 1-3 clock cycles via a hardware ALU, updates the BRAM, and resumes scanning.
-    *   *Pros:* Fits on the smallest, cheapest FPGAs. Easy to debug in Verilog.
-    *   *Cons:* Does not demonstrate the true parallel speedup of IC.
-2.  **The Parallel Pipelined Mesh (V2 Goal):**
-    *   The BRAM is divided into chunks (e.g., 8 independent memory banks of 128 nodes).
-    *   8 hardware Evaluator units run in parallel, constantly looking for interactions in their local banks and applying rewrites simultaneously.
-    *   A crossbar switch handles routing when an interaction crosses banks.
+This requires a **1D Spatial Array Processor (Systolic Array)** concept:
+*   **The Processor Elements (PEs):** The BRAM array of 1,024 nodes is physically divided into smaller chunks, or each index conceptually acts as a register wired to a massively parallel combinational logic block.
+*   **The Vectorized Sweep:** Instead of sequentially scanning with one ALU, the FPGA instantiates `N` lightweight logic gates (Comparators) that simultaneously check every single index in the array for an active redex (e.g., checking if Node at Index `i` is an `APP` and its `main_port` points to a `LAM`).
+*   **The `jnp.where` in Hardware:** In TensorIC, `jnp.where(condition, true_vals, original_vals)` evaluates globally. On the FPGA, you use **Masked Parallel Write-Backs**. During a single clock cycle, all indices that match an interaction rule raise a "Write Enable" flag. On the next clock cycle, all triggering interactions are simultaneously written back to their respective BRAM locations.
+*   **Routing (The Pointer Redirect):** A critical challenge in this parallel array is pointer redirection (e.g., wiring an output port to a grandparent node during a beta-reduction). The FPGA must use a **non-blocking Crossbar or a specialized routing permutation network** to allow multiple indices to swap pointer payloads in parallel without colliding memory bus read/writes.
 
 ---
 
