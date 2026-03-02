@@ -50,13 +50,30 @@ This requires a **1D Spatial Array Processor (Systolic Array)** concept:
 
 ---
 
-## 3. The Garbage Collection FSM
+## 3. The Garbage Collection Architecture (Free-List vs Vectorized Compaction)
 
-A pure hardware engine cannot leak memory, otherwise the 1,024 node space will fill instantly.
+A pure hardware engine cannot leak memory, otherwise the 1,024 node space will fill instantly. We have two options for the FPGA, mimicking different architectural goals.
 
-*   **The Hardware Free-List:** Instead of a complex software garbage collector, the FPGA maintains a hardware FIFO queue (a circular buffer) containing the 13-bit addresses of all "empty" slots.
-*   **Allocation (1 clock cycle):** When an `APP` node duplicates and spawns new nodes, the FSM pops an address off the free-list.
-*   **Deallocation (1 clock cycle):** When an `ERA` node annihilates a data node, its 13-bit address is instantly pushed back onto the free-list FIFO.
+### Option A: The Hardware Free-List (Instant latency, $O(1)$)
+This is the simplest hardware solution. 
+*   **The Hardware FIFO:** The FPGA maintains a circular buffer (FIFO) containing the 13-bit addresses of all "empty" slots.
+*   **Allocation (1 clock cycle):** When an `APP` node duplicates and spawns new nodes, the FSM pops an address off the FIFO.
+*   **Deallocation (1 clock cycle):** When an `ERA` node annihilates a data node, its address is instantly pushed back onto the FIFO.
+*   **Verdict:** Extremely fast, zero overhead. However, it leads to memory fragmentation.
+
+### Option B: Vectorized JAX GC Port (Parallel Prefix-Sum)
+Can the experimental `jax_gc_research.py` algorithm be ported to the Systolic FPGA Array? **Yes.**
+
+The JAX prototype uses two phases: `jax_mark_sweep` and `jax_compact` (Prefix-Sum). This can be mapped to hardware logic:
+1.  **Parallel Mark-and-Sweep (Breadth-First Raycasting):** 
+    *   In the JAX prototype, a boolean `alive_mask` is updated iteratively. 
+    *   In hardware, every PE (Index) wires its pointers to a massive routing grid. Starting from the Root Node, an electrical "Alive Signal" propagates through the graph's connections. 
+    *   If the graph depth is 10, it takes exactly 10 clock cycles for the signal to reach every active node. All nodes that hold a `1` on their "Alive" pin keep their data.
+2.  **Hardware Prefix-Sum (Blelloch Scan) for Compaction:**
+    *   In JAX, `jnp.cumsum(alive_mask)` generates the compacted target indices.
+    *   In FPGA hardware, a **Blelloch Parallel Tree Scanner** can compute the Prefix Sum of the 1,024-bit `alive_mask` in exactly $\log_2(1024) = 10$ clock cycles!
+    *   On the 11th clock cycle, every alive node simultaneously moves its data to its new compacted `prefix_sum` index, completely defragmenting the BRAM.
+*   **Verdict:** Porting the JAX GC to hardware is entirely feasible and solves fragmentation. The tradeoff is resource utilization: building a 1,024-wide Parallel Prefix-Sum tree consumes significant LUTs on the FPGA compared to a simple FIFO queue.
 
 ---
 
