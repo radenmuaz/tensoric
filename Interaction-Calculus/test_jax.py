@@ -5,7 +5,8 @@ from jax_evaluator import JaxIC
 from show import print_term
 
 ic = JaxIC()
-term = parse_file(ic, "examples/test_4.ic")
+file_path = sys.argv[1] if len(sys.argv) > 1 else "examples/test_4.ic"
+term = parse_file(ic, file_path)
 
 print("Initial Term:")
 print(print_term(ic, term))

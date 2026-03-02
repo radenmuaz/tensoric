@@ -111,6 +111,12 @@ def run_repl():
             ic = JaxIC()
             term = parse_string(ic, ic_source)
             
+            use_gc = "--gc" in sys.argv
+            if use_gc:
+                has_inters = True
+                while has_inters:
+                    has_inters, term = ic.run_scan(steps=5000, gc=True, root_term=term)
+            
             term = ic.ic_normal(term)
                 
             raw_out = print_term(ic, term)
@@ -133,18 +139,7 @@ def run_file(filename):
     
     content = re.sub(r";.*", "", content)
     asts = parse_lisp(content)
-    env_defs = {
-        "true": parse_lisp("(lambda (t f) t)")[0],
-        "false": parse_lisp("(lambda (t f) f)")[0],
-        "not": parse_lisp("(lambda (b) (b false true))")[0],
-        "and": parse_lisp("(lambda (a b) (a b false))")[0],
-        "or": parse_lisp("(lambda (a b) (a true b))")[0],
-        "cons": parse_lisp("(lambda (x y f) (f x y))")[0],
-        "fst": parse_lisp("(lambda (p) (p (lambda (x y) x)))")[0],
-        "snd": parse_lisp("(lambda (p) (p (lambda (x y) y)))")[0],
-        "if": parse_lisp("(lambda (c t f) (c t f))")[0],
-        "Z": parse_lisp("(lambda (f) ((lambda (x) (f (lambda (v) ((x x) v)))) (lambda (x) (f (lambda (v) ((x x) v))))))")[0],
-    }
+    env_defs = {}
 
     last_out = ""
     for root in asts:
@@ -171,6 +166,15 @@ def run_file(filename):
         
         ic = JaxIC()
         term = parse_string(ic, ic_source)
+        
+        use_gc = "--gc" in sys.argv
+        if use_gc:
+            has_inters = True
+            while has_inters:
+                has_inters, term = ic.run_scan(steps=5000, gc=True, root_term=term)
+                # JAX scan only handles APP-LAM natively in the MVP.
+                # If it finishes, the python normalizer takes over the rest (DUP, SWI).
+        
         term = ic.ic_normal(term)
         raw_out = print_term(ic, term)
         last_out = decode_ic(raw_out)

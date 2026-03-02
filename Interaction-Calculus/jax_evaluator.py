@@ -6,8 +6,8 @@ from staticic import APP, LAM
 
 # For memory safety on CPU compiling JIT, we constrain MAX_NODES
 # A TPU with 16GB HBM could easily handle 33M.
-JAX_MAX_NODES = 8000000 
-
+# Python 256MB Array mapped to 67M elements
+JAX_MAX_NODES = 67108864
 @jax.jit
 def scan_jax_core(state, _):
     heap, interactions = state
@@ -50,7 +50,11 @@ class JaxIC(VectorizedIC):
         # Override regular step to just do 1 scan step
         return self.run_scan(steps=1)
         
-    def run_scan(self, steps=100):
+    def run_scan(self, steps=100, gc=False, root_term=None):
+        if gc and root_term is not None:
+            root_term = self.compact(root_term)
+            self.jax_heap = None
+            
         if self.jax_heap is None:
             self.jax_heap = jnp.array(self.heap)
             
@@ -64,8 +68,10 @@ class JaxIC(VectorizedIC):
         # But JAX scan computes full lengths always.
         self.interactions += int(scanned_inters)
         
+        has_interactions = int(scanned_inters) > 0
+        
         # If interactions == 0, it means it halted structurally or had unsupported redexes
-        if int(scanned_inters) == 0:
-            return False
+        if gc and root_term is not None:
+            return has_interactions, root_term
             
-        return True
+        return has_interactions

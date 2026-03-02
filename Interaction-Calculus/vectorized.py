@@ -81,3 +81,79 @@ class VectorizedIC(StaticIC):
             self.interactions += len(idx_app_lam)
             
         return True
+
+    def compact(self, root_term):
+        new_heap = np.zeros_like(self.heap)
+        new_heap_pos = 0
+        forward = {} 
+        queue = []
+        
+        def alloc_new(n):
+            nonlocal new_heap_pos
+            ptr = new_heap_pos
+            new_heap_pos += n
+            return ptr
+            
+        def resolve_substitutions(term):
+            while True:
+                tag = self.get_tag(term)
+                val = self.get_val(term)
+                if tag == VAR or self.is_dup(tag):
+                    subst = self.heap[val]
+                    if self.is_sub(subst):
+                        term = self.clear_sub(subst)
+                        continue
+                break
+            return term
+            
+        def queue_term(term):
+            """Assigns a new address for the term and adds it to the queue to be copied iteratively."""
+            term = resolve_substitutions(term)
+            tag = self.get_tag(term)
+            val = self.get_val(term)
+            is_sub = self.is_sub(term)
+
+            if tag == ERA or tag == NUM:
+                return term
+
+            if val in forward:
+                return self.make_term(is_sub, tag, forward[val])
+
+            if tag == LAM or tag == SUC or self.is_dup(tag) or tag == VAR:
+                size = 1
+            elif tag == APP or self.is_sup(tag):
+                size = 2
+            elif tag == SWI:
+                size = 3
+            else:
+                size = 1
+
+            new_loc = alloc_new(size)
+            forward[val] = new_loc
+            queue.append((val, new_loc, size))
+            return self.make_term(is_sub, tag, new_loc)
+
+        new_root = queue_term(root_term)
+        
+        while queue:
+            old_loc, new_loc, size = queue.pop(0)
+            for i in range(size):
+                old_val = self.heap[old_loc + i]
+                # It's an internal parameter slot so trace it
+                resolved_old_val = resolve_substitutions(old_val)
+                # Now queue it iteratively instead of doing recursive tracing
+                if self.is_sub(old_val):
+                    # Maintain the substitution flag
+                    mapped_val = queue_term(resolved_old_val)
+                    new_heap[new_loc + i] = self.make_sub(mapped_val)
+                else:
+                    new_heap[new_loc + i] = queue_term(resolved_old_val)
+                    
+        self.heap = new_heap
+        self.heap_pos = new_heap_pos
+        
+        self.active_redexes_l = np.zeros(self.heap.shape[0], dtype=np.uint32)
+        self.active_redexes_r = np.zeros(self.heap.shape[0], dtype=np.uint32)
+        self.redex_count = 0
+        
+        return new_root
