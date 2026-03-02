@@ -77,23 +77,48 @@ The JAX prototype uses two phases: `jax_mark_sweep` and `jax_compact` (Prefix-Su
 
 ---
 
-## 4. Initial Demos and Benchmarks (Proof of Concept)
+## 4. Hardware Resource Estimation (LUT & BRAM Targets)
 
-What programs do we actually compile to the FPGA to prove it works?
+When targeting a mid-range development board (e.g., Xilinx Artix-7 100T or AMD Zynq-7020), we must consider the physical constraints of Logic Cells (LUTs) and Block RAM (BRAM). 
 
-### Demo 1: The Boolean Identity (Testing Routing)
-*   **Program:** `NOT(NOT(True))`
-*   **Nodes Used:** `LAM`, `APP`. 
-*   **Goal:** Prove the basic annihilation rules work and that the final output correctly routes to the "Output Pins" of the FPGA (lighting an LED to represent `True`).
+Here is an aggressive but realistic estimate for a **1,024-node Array-Based** engine:
 
-### Demo 2: The Exponential DUP (Testing Memory & GC)
-*   **Program:** `DUP(DUP(...(NUM)))`
-*   **Nodes Used:** `DUP`, `SUP`, `NUM`.
-*   **Goal:** This causes a rapid "explosion" of the graph. It proves that the hardware Free-List can allocate memory fast enough without corrupting pointers, and that cross-label duplication functions natively on silicon.
+1.  **Memory (BRAM)**
+    *   1,024 nodes $\times$ 32 bits = 32,768 bits (32 Kbit). 
+    *   A single Artix-7 36Kb Block RAM tile can hold the entire graph. BRAM utilization is negligible ($< 1\%$).
+2.  **Execution Fabric (Comparators)**
+    *   To check interactions natively across all 1,024 indices in parallel, each index needs a basic comparator (checking Tag matches). 
+    *   *Estimate:* ~10-15 LUTs per index.
+    *   *Total Array Logic:* $\sim 15,000$ LUTs.
+3.  **Routing/Crossbar Network (The Bottleneck)**
+    *   A full $1024 \times 1024$ non-blocking Crossbar is mathematically impossible on mid-range FPGAs (requires $\sim 1,000,000+$ LUTs). 
+    *   *Solution:* We must use a **Banyan Network** or **Benes Permutation Network**. For $N=1024$, this requires $N \log_2 N$ switching stages. 
+    *   *Estimate:* $\sim 20,000$ LUTs depending on multiplexer pipelining.
+4.  **Hardware Garbage Collection (Vectorized Option B)**
+    *   A 1,024-wide Blelloch Parallel Prefix-Sum tree requires exactly 1,023 Adders.
+    *   Because the sum only reaches a maximum value of 1,024 (a 10-bit integer), we only need 10-bit half-adders.
+    *   *Estimate:* 1,023 Adders $\times$ 10 LUTs/Adder = $\sim 10,000$ LUTs.
+5.  **Total System Footprint**
+    *   $\sim 45,000 - 55,000$ LUTs.
+    *   This fits comfortably on an Artix-7 100T (which has 63,400 LUTs). This proves the Array-Based model is dense but achievable.
 
-### Demo 3: The Unary Church Adder (Testing $O(1)$ Math)
-*   **Program:** Represent 2 and 3 as Church numerals and apply the IC `Add` rule.
-*   **Goal:** Because this relies entirely on structure (`LAM` and `APP`), if this evaluates correctly to the Church numeral 5, it proves the FPGA can successfully compute arbitrary turing-complete functions purely via topology rewrites, without utilizing the FPGA's built-in DSP/DSP48 math slices.
+---
+
+## 5. Initial Demos and Benchmarks (Array-Based Verification)
+
+What programs do we actually compile to the FPGA to prove the parallel architecture functions correctly? Because we are using an Array-Based execution fabric, our demos should explicitly test masked parallel substitutions.
+
+### Demo 1: The Vectorized Broadcast (Testing the Crossbar)
+*   **Program:** `DUP(FLT_ARRAY_ROOT)`
+*   **Goal:** A massive array of numbers is duplicated at once. This tests the absolute bandwidth capacity of the Benes Permutation Routing network. If the FPGA duplicates 100 nodes in 3 clock cycles without pointer collision, the parallel execution fabric is verified.
+
+### Demo 2: The Parallel Boolean Reducer
+*   **Program:** A wide, flat tree of Boolean `AND` and `OR` logic gates (e.g., resolving a 16-bit Parity check).
+*   **Goal:** In a sequential CPU engine, reducing 16 boolean gates takes 16 loops. In our FPGA array architecture, all non-dependent gates should be evaluated by the comparators in the exact same clock cycle. We verify that the graph depth collapses logarithmically ($O(\log N)$).
+
+### Demo 3: The JAX GC Compaction Test
+*   **Program:** A graph with 500 active nodes and 500 randomly scattered ERA (dead) nodes.
+*   **Goal:** Trigger the GC Phase. We connect a Logic Analyzer (ILA) to the FPGA to physically trace the 10-cycle Blelloch Prefix-Sum tree and verify that on the 11th clock cycle, all 500 active nodes perfectly compact into indices `0` to `499` in BRAM.
 
 ---
 
