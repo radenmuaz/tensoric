@@ -22,6 +22,7 @@ The design process, mathematical constraints, and potential use cases are docume
 - [**Architecture & Big-O Analytics** (`docs/BIG_O.md`)](docs/BIG_O.md): Details the translation of dynamic graph memory management into static array operations, including benchmarks of tracing compilation overhead.
 - [**Applications & Future Vision** (`docs/APPLICATIONS.md`)](docs/APPLICATIONS.md): Explores the theoretical use cases for zero-roundtrip RL environments and parallel symbolic execution.
 - [**Hardware Vision & Pure IC Architecture** (`docs/HARDWARE_VISION.md`)](docs/HARDWARE_VISION.md): Deep dive into custom IC ASIC designs, from 64-bit embedded nodes to bit-serial extreme parallel ALUs and reversible computing.
+- [**FPGA Hardware Prototype Blueprint** (`docs/FPGA_PROTOTYPE.md`)](docs/FPGA_PROTOTYPE.md): Initial parameters, node widths, and BRAM memory routing limits for a V1 FPGA Verilog Implementation.
 - [**Numerics Architecture** (`docs/NUMERICS_ARCHITECTURE.md`)](docs/NUMERICS_ARCHITECTURE.md): An out-of-band proposal using JAX arrays to process high-precision math alongside the IC graph, plus tradeoffs vs. pure IC numbers.
 
 ## 📦 Installation & Setup
