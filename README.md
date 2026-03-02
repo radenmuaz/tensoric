@@ -67,11 +67,22 @@ This is a research prototype. There are significant engineering hurdles before t
 2. **Dense Masking vs Sparse Graphs:** The vectorized evaluator checks the *entire array* iteratively (`jnp.where`) looking for active combinations (`APP` + `LAM`). This means $O(N)$ scanning over the heap even if there are sparse localized active redexes.
 3. **Garbage Collection Bottleneck:** Unreferenced IC nodes accumulate rapidly. The prototype pure JAX garbage collector (`jax_gc_research.py`) requires a deep fixed-point array prefix-sum iteration which halts the TPU computation pipeline for expensive sweeping logic.
 
-## 🤝 Contributing
+## 🤝 Contributing (PRs Welcome!)
 
-We are exploring the intersection of **Programming Language Theory (PLT)** and **Tensor Compaction**. 
+We are exploring the intersection of **Programming Language Theory (PLT)** and **Tensor Compaction**, and we'd love your help! Whether it's adding a new feature or simply fixing a bug, **Pull Requests are explicitly welcome.**
 
-Areas for exploration:
-- Improving the TPU trace profiles to extract better FLOP ratios for the linear sparse interaction scanning logic natively.
-- Refining structural garbage collection heuristics to avoid whole-array traversals.
-- Developing differentiable extensions to the IC substitution rules recursively natively.
+Here are some high-impact areas where contributions would be amazing:
+
+### 🧪 Tests & Optimization
+- **Expanded Test Suite:** Adding more complex `.ic` and `.lisp` programs to the test suite to validate correctness across deeper recursive structures.
+- **Trace Profiling:** Benchmarking TPU/GPU memory bandwidth utilization and identifying strategies to improve FLOP ratios for the sparse `jnp.where` interaction logic.
+- **Garbage Collection:** Refining the `jax_gc_research.py` heuristics to minimize whole-array prefix sums and speed up structural memory compaction.
+
+### ✨ Features & Lisp Compiler
+- **Standard Library:** Implementing more deeply recursive algorithms (Sorting, Trees) purely in our Lisp dialect.
+- **Compiler Optimizations:** Improving the `lisp_compiler.py` scope pass to intelligently sequence `DUP` nodes to minimize graph explosion sizes.
+- **Native Data Types:** Adding support natively for floats or arrays natively represented as contiguous linked structural subsets.
+
+### 🚀 Applications & Differentiability
+- **Reinforcement Learning:** Using TensorIC to compile an entire RL simulation environment into a static GPU graph.
+- **Continuous Logic:** Developing differentiable extensions to the IC substitution rules recursively natively, allowing gradients to backpropagate through symbolic reductions.
