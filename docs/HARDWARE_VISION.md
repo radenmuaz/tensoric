@@ -249,12 +249,18 @@ If numbers were represented using Church encodings (where the number $N$ is repr
 
 **The Catch with Church Numerals:** While the math is $O(1)$ to construct, if you ever need to `DUP`licate a Church numeral, or evaluate it to check if it equals `0` (an `IF` statement), the IC engine must physically unfold the entire tree, taking $O(N)$ interactions. For large numbers, this is fatal.
 
-### B. Binary Bit-Strings: $O(\log N)$ Optimal Parallel Adder
-If we represent numbers structurally as binary linked-lists (e.g., `B_1(B_0(...))`), we can build an IC graph that acts as a parallel adder.
+### C. Non-Unary Formats (Binary Arrays and IEEE 754)
+Must the number representation be *unary* (like Church numerals) to achieve Asymptotic structural speedups $O(1)$? 
 
-*   In a standard sequential FPU, a Ripple-Carry Adder takes $O(B)$ time where $B$ is the number of bits (32 cycles for 32 bits) because the carry bit must travel sequentially.
-*   In IC, you can structure a **Parallel Prefix Adder (e.g., Kogge-Stone Adder)** as a static graph of rules. 
-*   **The IC Advantage:** Because IC natively evaluates all ready redexes asynchronously in parallel without waiting for a clock cycle, the 32 bits propagate through the graph concurrently. The addition finishes in exactly $O(\log B)$ interaction depths. 
+No! But the tradeoff shifts from $O(1)$ Time to $O(\log N)$ Time, while drastically reducing memory footprint.
+
+If we represent numbers structurally as **Binary Bit-Strings** (e.g., a linked list of nodes: `B_1(B_0(...))`) or as a structural tree mimicking an **IEEE 754 Floating Point Array**, we lose the $O(1)$ "magic wiring" of Church numerals. However, we gain the ability to build Optimal Parallel Adders.
+
+*   **Addition ($O(\log B)$):** In a standard sequential FPU, a Ripple-Carry Adder takes $O(B)$ time where $B$ is the number of bits (32 cycles for 32 bits) because the carry bit must travel sequentially. In IC, you can structure a **Parallel Prefix Adder (e.g., Kogge-Stone Adder)** as a static tree graph of rules. Because IC natively evaluates all ready redexes asynchronously in parallel, the 32 bits propagate through the graph concurrently. The addition finishes in exactly $O(\log B)$ interaction depths.
+*   **Multiplication ($O(\log B)$):** Using a structural Wallace Tree graph, multiplication of binary strings completes in $O(\log B)$ depth. 
+*   **Why this is structurally better than Church:** A Church numeral for $N=1,000,000$ requires $1,000,000$ physical IC nodes in memory. A Binary representation of $N=1,000,000$ requires exactly $20$ physical IC nodes ($2^{20}$). 
+
+Encoding standard Binary or IEEE Floats as pure IC structures means we **sacrifice the theoretical $O(1)$ Exponentiation of Church Numerals** to gain **Exponential Memory Density**, while still achieving **$O(\log B)$ mathematically optimal parallel latency**.
 
 ### Conclusion: Throughput over Latency
 An individual IC arithmetic interaction will likely never beat a 5 GHz silicon FPU in raw wall-clock latency. When Nvidia wires an FPU to add two floats, electricity physically travels through nanometer-scale logic gates at the speed of light in 0.2 nanoseconds.
