@@ -37,6 +37,8 @@ pip install jax jaxlib numpy
 ### Reproducing Benchmarks
 The test suite validates graph normalization against the original C implementation and measures JIT compilation timings across varied scan sequence lengths (`--steps`). 
 
+**Test Environment:** These tests were successfully executed and validated natively on a **MacBook M2 (8GB RAM)**. Due to memory constraints on this machine, the graph allocation was bounded to 1-Million structural nodes.
+
 ```bash
 python3 Interaction-Calculus/run_tests.py
 ```
