@@ -19,9 +19,10 @@ Executing symbolic code on accelerators typically bottlenecks at CPU-device comm
 
 The design process, mathematical constraints, and potential use cases are documented here:
 
-- [**Architecture & Big-O Analytics** (`BIG_O.md`)](BIG_O.md): Details the translation of dynamic graph memory management into static array operations, including benchmarks of tracing compilation overhead.
-- [**Applications & Future Vision** (`APPLICATIONS.md`)](APPLICATIONS.md): Explores the theoretical use cases for zero-roundtrip RL environments and parallel symbolic execution.
-- [**Implementation Specifications**](.gemini/antigravity/brain/b126d6eb-cef6-4a0b-8239-6b3685eee277/implementation_plan.md) *(Internal)*: Details on the Vectorized evaluator translation map.
+- [**Architecture & Big-O Analytics** (`docs/BIG_O.md`)](docs/BIG_O.md): Details the translation of dynamic graph memory management into static array operations, including benchmarks of tracing compilation overhead.
+- [**Applications & Future Vision** (`docs/APPLICATIONS.md`)](docs/APPLICATIONS.md): Explores the theoretical use cases for zero-roundtrip RL environments and parallel symbolic execution.
+- [**Hardware Vision & Pure IC Architecture** (`docs/HARDWARE_VISION.md`)](docs/HARDWARE_VISION.md): Deep dive into custom IC ASIC designs, from 64-bit embedded nodes to bit-serial extreme parallel ALUs and reversible computing.
+- [**Numerics Architecture** (`docs/NUMERICS_ARCHITECTURE.md`)](docs/NUMERICS_ARCHITECTURE.md): An out-of-band proposal using JAX arrays to process high-precision math alongside the IC graph, plus tradeoffs vs. pure IC numbers.
 
 ## 📦 Installation & Setup
 
