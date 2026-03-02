@@ -1,3 +1,19 @@
+Metadata-Version: 2.4
+Name: tensoric
+Version: 0.1.0
+Summary: Interaction Calculus on Accelerators using JAX
+Author-email: Raden Muaz <radenmuaz@gmail.com>
+License: MIT
+Project-URL: Homepage, https://github.com/radenmuaz/tensoric
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: jax
+Requires-Dist: jaxlib
+Requires-Dist: numpy
+
 # TensorIC: Interaction Calculus on Accelerators
 
 [![JAX](https://img.shields.io/badge/JAX-Powered-blue)](https://github.com/google/jax)
@@ -30,7 +46,8 @@ Requires Python 3.9+ and JAX.
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install -e .
+# Install CPU version of JAX (for GPU/TPU see: https://github.com/google/jax#installation)
+pip install jax jaxlib numpy
 ```
 
 ### Reproducing Benchmarks
@@ -39,14 +56,14 @@ The test suite validates graph normalization against the original C implementati
 **Test Environment:** These tests were successfully executed and validated natively on a **MacBook M2 (8GB RAM)**. Due to memory constraints on this machine, the graph allocation was bounded to 1-Million structural nodes.
 
 ```bash
-python3 run_tests.py
+python3 Interaction-Calculus/run_tests.py
 ```
 *Tests output to `test_logs_steps_XXX.txt` to verify whether XLA recompiles the structure.*
 
 ### Lisp REPL
 Evaluate a functional Lisp program compiled down and evaluated on the JAX backend:
 ```bash
-./scripts/repl.sh examples/math.lisp --steps=200
+python3 Interaction-Calculus/repl.py examples/math.lisp --steps=200
 ```
 
 ## 📜 Supported Lisp Features
