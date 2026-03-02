@@ -2,7 +2,7 @@ README.md
 pyproject.toml
 tensoric/__init__.py
 tensoric/jax_evaluator.py
-tensoric/jax_gc_research.py
+tensoric/research/jax_gc_research.py
 tensoric/lisp_compiler.py
 tensoric/lisp_parser.py
 tensoric/lisp_to_ic.py
