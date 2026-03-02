@@ -1,35 +1,27 @@
-# TensorIC: Interaction Calculus on Accelerators ⚡️
+# TensorIC: Interaction Calculus on Accelerators
 
 [![JAX](https://img.shields.io/badge/JAX-Powered-blue)](https://github.com/google/jax)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**TensorIC** is a revolutionary approach to symbolic computation and strict mathematical evaluation on modern hardware accelerators (GPUs & TPUs). 
+**TensorIC** is an experimental port of the [Interaction Calculus](https://github.com/Interaction-Calculus/Interaction-Calculus) graph rewrite system to a vectorized, static-array formulation using **[JAX](https://github.com/google/jax)**.
 
-Traditional Neural Networks are highly parallel but lack Turing-complete control flow and native symbolic reasoning. Conversely, traditional interpreters (like Python or C) are Turing-complete but execute sequentially, bottlenecking at the CPU.
+The goal of this project is to explore whether Turing-complete symbolic evaluation—which traditionally relies on dynamic heap allocation, pointers, and asynchronous recursion—can be flattened into fixed-shape, pre-allocated tensor operations suitable for modern hardware accelerators (GPUs & TPUs).
 
-**TensorIC bridges this gap.** By porting the ultra-concurrent [Interaction Calculus](https://github.com/Interaction-Calculus/Interaction-Calculus) graph rewrite system into pure, vectorized **[JAX](https://github.com/google/jax)** arrays natively, we can compile full Lisp programs—complete with closures, recursion, and higher-order functions—directly into static tensor computations.
+## � Concept
 
-## 🚀 Why TensorIC?
+Executing symbolic code on accelerators typically bottlenecks at CPU-device communication (e.g., Python `while` loops coordinating GPU steps). TensorIC explores an alternative: **Parallel Structural Representation**.
 
-Executing symbolic code on TPUs/GPUs normally requires constant host-device communication (Python `while` loops roundtripping to the accelerator). TensorIC completely abandons pointer-chasing and dynamic heap allocation in favor of **Parallel Structural Representation**.
+- **JIT Compilation:** By representing the interaction rules purely functionally (`heap.at[locs].set(values)`) with static arrays, JAX's `jax.lax.scan` primitive can compile the evaluation sweep. The accelerator executes hundreds of iterations autonomously without dropping back to the Python host.
+- **Embedded Evaluation:** This architecture aims to allow Turing-complete logic (like Reinforcement Learning environments or symbolic searches) to run entirely on the accelerator, co-located with neural network weights.
+- **Lisp Frontend:** TensorIC includes a compiler that lowers untyped Lisp into affine/linear IC structure matrices, automating the insertion of duplication (`DUP`) and erasure (`ERA`) nodes.
 
-- **Zero Python Overhead:** JAX's `jax.lax.scan` primitive compiles the evaluation loop exactly *once*. Billions of graph interactions run directly on the TPU silicon mapping evaluation traces.
-- **Turing-Complete AI Agents:** Reinforcement Learning models no longer need to wait on CPU-bound environments. The entire simulation environment and the agent's logic can be compiled into a single static GPU/TPU graph.
-- **Lisp Compiler Included:** Write high-level symbolic Lisp code, automatically lowering it to JAX multidimensional array networks recursively.
+## 📚 Documentation
 
-## 📚 Deep Dives & Documentation
+The design process, mathematical constraints, and potential use cases are documented here:
 
-We have thoroughly documented the architecture, mathematical constraints, and vast possibilities of this paradigm. 
-
-- [**Applications & Future Vision** (`APPLICATIONS.md`)](APPLICATIONS.md): Read about Zero-Roundtrip RL environments, compiling software natively to NPUs, and massively parallel symbolic searches natively. 
-- [**Architecture & Big-O Analytics** (`BIG_O.md`)](BIG_O.md): Discover how we conquered dynamic graph memory management across static memory blocks natively. View empirical benchmarks proving strictly $O(1)$ tracing compilation overhead. 
+- [**Architecture & Big-O Analytics** (`BIG_O.md`)](BIG_O.md): Details the translation of dynamic graph memory management into static array operations, including benchmarks of tracing compilation overhead.
+- [**Applications & Future Vision** (`APPLICATIONS.md`)](APPLICATIONS.md): Explores the theoretical use cases for zero-roundtrip RL environments and parallel symbolic execution.
 - [**Implementation Specifications**](.gemini/antigravity/brain/b126d6eb-cef6-4a0b-8239-6b3685eee277/implementation_plan.md) *(Internal)*: Details on the Vectorized evaluator translation map.
-
-## ✨ Key Features
-
-1. **JAX Batched Execution (`JaxIC`)**: Graph algorithms execute entirely functionally via `heap.at[locs].set(values)`. The tensor operations are vectorized across edge relationships, executing multiple $\lambda$-reductions synchronously per clock cycle.
-2. **Native Lisp Frontend**: `repl.py` enables parsing and compiling recursive S-Expressions (`math.lisp`, `bool.lisp`). The compiler features a custom Linearity/Scope inference pass, auto-inserting duplication (`DUP`) and erasure (`ERA`) nodes corresponding strictly to affine logic networks natively.
-3. **Pure JAX Garbage Collection**: Instead of relying on host RAM management natively, garbage collection natively relies entirely upon fixed-point iteration and parallel prefix sums (`jnp.cumsum`) to compact and compress memory blocks on the accelerator instantaneously.
 
 ## 📦 Installation & Setup
 
@@ -38,50 +30,46 @@ Requires Python 3.9+ and JAX.
 ```bash
 python3 -m venv venv
 source venv/bin/activate
+# Install CPU version of JAX (for GPU/TPU see: https://github.com/google/jax#installation)
 pip install jax jaxlib numpy
 ```
 
 ### Reproducing Benchmarks
-Our integrated test suite strictly measures compilation timings and proves static sequence execution natively. The tests will log to `test_logs_steps_XXX.txt` to strictly mathematically prove JAX compiling correctly caches trace graphs precisely $1$ time globally.
+The test suite validates graph normalization against the original C implementation and measures JIT compilation timings across varied scan sequence lengths (`--steps`). 
+
 ```bash
 python3 Interaction-Calculus/run_tests.py
 ```
+*Tests output to `test_logs_steps_XXX.txt` to verify whether XLA recompiles the structure.*
 
-### Try the Lisp REPL
-Execute an entire functional Lisp program isolated natively to TPU execution:
+### Lisp REPL
+Evaluate a functional Lisp program compiled down and evaluated on the JAX backend:
 ```bash
 python3 Interaction-Calculus/repl.py examples/math.lisp --steps=200
 ```
-This script dynamically parses Lisp, translates it into strict IC Affine relationships, and evaluates it natively using `jax_evaluator.py`.
 
-## 📜 Supported Lisp Features (`lisp_compiler.py`)
-Because Interaction Calculus inherently enforces Affine logic (variables must interact exactly once), writing traditional algorithms is notoriously difficult. Our compiler automatically resolves this barrier.
+## 📜 Supported Lisp Features
+Because the Interaction Calculus enforces Affine logic (variables interact exactly once), writing algorithms requires strict linearity formatting. The custom `lisp_compiler.py` automates this.
 
 **Supported Constructs:**
-- **First-Class Closures**: Standard `(lambda (x y) ... )` mapping to Interaction Calculus `LAM` and `APP` nodes.
-- **Global Definitions**: `(def name value)` natively evaluated.
-- **Native Numerals & Branching**: 32-bit unsigned math integers (`NUM`), natively supporting Zero-checks and Sucessor operations (`SWI`, `SUC`) for building logical switches: `(if condition true_branch false_branch)`
-- **Boolean Algebra**: Standard logical evaluators integrated into `examples/bool.lisp`.
-- **Recursive Math**: Native recursive mappings implemented inside `examples/math.lisp`.
-- **Automatic Memory Linearity**: The compiler abstracts away manual graph manipulation via an autonomous Scope Pass. Variables used $N > 1$ times dynamically spawn Duplication networks (`DUP`). Unused variables evaluate to Erasure bounds (`ERA`).
+- **First-Class Closures**: Standard `(lambda (x y) ... )` mapping to IC `LAM` and `APP` nodes.
+- **Native Numerals & Branching**: 32-bit unsigned math integers (`NUM`), natively supporting Zero-checks and Sucessor operations (`SWI`, `SUC`) for logical branching.
+- **Automatic Linearity**: Variables used $N > 1$ times dynamically spawn duplication networks (`DUP`). Unused variables evaluate to erasure bounds (`ERA`).
+- **Examples**: Basic Boolean algebra (`examples/bool.lisp`) and recursive Math closures (`examples/math.lisp`).
 
-## 🧠 Architecture Stack
-- `Interaction-Calculus/jax_evaluator.py`: The core JIT-compiled tensor engine natively. Utilizes strictly functional updates without Python orchestration overheads globally.
-- `Interaction-Calculus/lisp_compiler.py` & `lisp_parser.py`: The frontend transforming untyped Lisp into affine/linear IC structure matrices.
-- `Interaction-Calculus/vectorized.py`: Abstracts the graph traversal into index-array maps representing raw NPUs operations (`jnp.where`).
-- `Interaction-Calculus/staticic.py`: Emulates the reference engine `tag/val` 32-bit architecture natively over static NumPy pools.
-- `Interaction-Calculus/jax_gc_research.py`: Explores completely structural natively bounded Garbage Collection techniques.
+## ⚠️ Current Limitations
 
-## 🤝 Contributing (Calling ML Researchers!)
+This is a research prototype. There are significant engineering hurdles before this achieves parity with compiled CPU engines (like Rust/C):
 
-We are standing at the intersection of **Programming Language Theory (PLT)** and **High-Performance Deep Learning**. 
+1. **Pre-allocated Memory Limits:** In pure JAX, tensor shapes cannot grow dynamically. The `JAX_MAX_NODES` array must be pre-allocated to the maximum plausible graph dimension memory bound. This heavily inflates memory footprint per evaluation context.
+2. **Dense Masking vs Sparse Graphs:** The vectorized evaluator checks the *entire array* iteratively (`jnp.where`) looking for active combinations (`APP` + `LAM`). This means $O(N)$ scanning over the heap even if there are sparse localized active redexes.
+3. **Garbage Collection Bottleneck:** Unreferenced IC nodes accumulate rapidly. The prototype pure JAX garbage collector (`jax_gc_research.py`) requires a deep fixed-point array prefix-sum iteration which halts the TPU computation pipeline for expensive sweeping logic.
 
-If you are an ML researcher interested in executing symbolic logic directly embedded inside Transformer architectures natively, or a systems-level engineer aiming to accelerate symbolic evaluation via static tensor representations, we want your help!
+## 🤝 Contributing
 
-Areas for Contribution:
-- Implementing deeply recursive algorithms purely natively in our Lisp dialect globally.
-- Validating TPU trace profiles to extract maximum FLOP ratios natively for parallel graph reductions.
-- Exploring Continuous/Differentiable extensions natively extending the substitution logic recursively.
+We are exploring the intersection of **Programming Language Theory (PLT)** and **Tensor Compaction**. 
 
----
-*Built to bring Turing-complete intelligence directly to the silicon.* 
+Areas for exploration:
+- Improving the TPU trace profiles to extract better FLOP ratios for the linear sparse interaction scanning logic natively.
+- Refining structural garbage collection heuristics to avoid whole-array traversals.
+- Developing differentiable extensions to the IC substitution rules recursively natively.
