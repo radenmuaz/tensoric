@@ -7,7 +7,7 @@ from staticic import APP, LAM
 
 # For memory safety on CPU compiling JIT, we constrain MAX_NODES
 # A TPU with 16GB HBM could easily handle 33M.
-# Python 256MB Array mapped to 67M elements
+# Python 256MB Array mapped to 67M elements natively
 JAX_MAX_NODES = 67108864
 
 def scan_jax_core(state, _):
@@ -41,9 +41,16 @@ def scan_jax_core(state, _):
     
     inters = jnp.sum(app_lam_mask, dtype=jnp.uint32)
     return (heap, interactions + inters), inters
+    
+compilation_count = 0
 
 @partial(jax.jit, static_argnums=(1,))
 def compiled_scan(state, steps):
+    global compilation_count
+    compilation_count += 1
+    print(f"\n[JAX JIT TRACING] Compiling scan for steps={steps} (Compile Count: {compilation_count})\n")
+    if compilation_count > 1:
+        print("ERROR: JAX Recompilation Detected!")
     return jax.lax.scan(scan_jax_core, state, None, length=steps)
 
 class JaxIC(VectorizedIC):

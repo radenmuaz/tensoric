@@ -1,4 +1,4 @@
-=== Benchmarks (Scan Steps: 10) ===
+=== Benchmarks (Scan Steps: 200) ===
 
 --- Raw IC Graph Tests (.ic) ---
 
@@ -24,13 +24,13 @@ Initial Term:
 ! &0{a62,b63} = λab.(a64 (b65 ab));
 ! &0{a64,b65} = i;
 (λa.((a λb.((b λc.λd.d) λe.λf.e)) λg.λh.g) λi.λj.(a28 (b29 j)))
-Warming up JIT compiler for 10 steps...
+Warming up JIT compiler for 200 steps...
 
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
-JIT Compilation Time: 0.73311s
-  [Scan 10 steps execution: 0.1103s]
-  [Scan 10 steps execution: 0.0706s]
+JIT Compilation Time: 2.61158s
+  [Scan 200 steps execution: 2.0704s]
+  [Scan 200 steps execution: 1.7629s]
 Final Term:
 ! &0{a28,b29} = λk.(a30 (b31 k));
 ! &0{a30,b31} = λl.(a32 (b33 l));
@@ -53,63 +53,63 @@ Final Term:
 ! &0{a64,b65} = i;
 (λa.((a λb.((b λc.λd.d) λe.λf.e)) λg.λh.g) λi.λj.(a28 (b29 j)))
 WORK: 1 interactions
-TIME: 0.1809680 seconds
+TIME: 3.8335040 seconds
 
-SUCCESS (Time: 1.71s)
+SUCCESS (Time: 7.11s)
 
 >> Executing: examples/test_1.ic
 Initial Term:
 ! &0{a2,b3} = a;
 λa.λb.(a2 (b3 b))
-Warming up JIT compiler for 10 steps...
+Warming up JIT compiler for 200 steps...
 
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
-JIT Compilation Time: 0.39374s
-  [Scan 10 steps execution: 0.1163s]
+JIT Compilation Time: 1.95898s
+  [Scan 200 steps execution: 1.7118s]
 Final Term:
 ! &0{a2,b3} = a;
 λa.λb.(a2 (b3 b))
 WORK: 0 interactions
-TIME: 0.1163342 seconds
+TIME: 1.7119210 seconds
 
-SUCCESS (Time: 1.09s)
+SUCCESS (Time: 4.65s)
 
 >> Executing: examples/test_2.ic
 Initial Term:
 λa.((a λb.c) λc.b)
-Warming up JIT compiler for 10 steps...
+Warming up JIT compiler for 200 steps...
 
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
-JIT Compilation Time: 0.27633s
-  [Scan 10 steps execution: 0.0887s]
+JIT Compilation Time: 1.88523s
+  [Scan 200 steps execution: 1.9286s]
 Final Term:
 λa.((a λb.c) λc.b)
 WORK: 0 interactions
-TIME: 0.0886889 seconds
+TIME: 1.9292939 seconds
 
-SUCCESS (Time: 0.96s)
+SUCCESS (Time: 4.36s)
 
 >> Executing: examples/test_3.ic
 Initial Term:
 ! &0{a2,b3} = a;
 ! &0{a4,b5} = b3;
 λa.λb.(a2 (a4 (b5 b)))
-Warming up JIT compiler for 10 steps...
+Warming up JIT compiler for 200 steps...
 
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
-JIT Compilation Time: 0.30958s
-  [Scan 10 steps execution: 0.0893s]
+JIT Compilation Time: 1.90335s
+  [Scan 200 steps execution: 1.7784s]
 Final Term:
 ! &0{a2,b3} = a;
 ! &0{a4,b5} = b3;
 λa.λb.(a2 (a4 (b5 b)))
 WORK: 0 interactions
-TIME: 0.0894008 seconds
+TIME: 1.7787101 seconds
 
-SUCCESS (Time: 1.04s)
+SUCCESS (Time: 4.42s)
 
 >> Executing: examples/test_4.ic
 Initial Term:
@@ -119,13 +119,13 @@ Initial Term:
 ! &1{a47,b48} = λao.(an (a49 b50));
 ! &1{a49,b50} = ao;
 (λa.(λb.(λc.(λd.(λe.(λf.(a41 (a43 (b44 f))) λg.λh.λi.(g λj.λk.λl.(j λm.λn.λo.(m λp.λq.λr.(p λs.λt.λu.u))))) (a λv.λw.(((w λx.λy.λz.λaa.(z (a45 x))) λab.λac.λad.λae.(ac (b46 ab))) λaf.λag.λah.ah))) λai.((ai c) b)) λaj.λak.ak) λal.λam.al) λan.(a47 b48))
-Warming up JIT compiler for 10 steps...
+Warming up JIT compiler for 200 steps...
 
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
-JIT Compilation Time: 0.30145s
-  [Scan 10 steps execution: 0.0969s]
-  [Scan 10 steps execution: 0.0973s]
+JIT Compilation Time: 2.09728s
+  [Scan 200 steps execution: 1.8325s]
+  [Scan 200 steps execution: 1.9540s]
 Final Term:
 ! &0{a8,b9} = e;
 ! &0{a10,b11} = b9;
@@ -133,95 +133,95 @@ Final Term:
 ! &1{a14,b15} = h;
 (λa.λb.λc.λd.λe.λf.(a8 (a10 (b11 f))) λg.(a12 b13))
 WORK: 6 interactions
-TIME: 0.1942420 seconds
+TIME: 3.7869670 seconds
 
-SUCCESS (Time: 1.19s)
+SUCCESS (Time: 6.52s)
 
 >> Executing: examples/test_5.ic
 Initial Term:
 λa.?a{0:0;+:&0{1,2};}
-Warming up JIT compiler for 10 steps...
+Warming up JIT compiler for 200 steps...
 
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
-JIT Compilation Time: 0.36775s
-  [Scan 10 steps execution: 0.0937s]
+JIT Compilation Time: 1.96184s
+  [Scan 200 steps execution: 1.7264s]
 Final Term:
 λa.?a{0:0;+:&0{1,2};}
 WORK: 0 interactions
-TIME: 0.0936651 seconds
+TIME: 1.7264962 seconds
 
-SUCCESS (Time: 1.10s)
+SUCCESS (Time: 4.29s)
 
 
 --- Lisp Compiler Tests (.lisp) ---
 
 >> Executing: examples/bool.lisp (256MB Arrays)
-Warming up JIT compiler for 10 steps...
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+Warming up JIT compiler for 200 steps...
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
- (Done in 0.29179s)
-  [Scan 10 steps execution: 0.0810s]
-  [Scan 10 steps execution: 0.1101s]
-Execution Time (Exclusive JIT): 0.19125s
-Total Time (Inclusive JIT): 0.48304s
+ (Done in 1.93672s)
+  [Scan 200 steps execution: 1.7173s]
+  [Scan 200 steps execution: 1.6455s]
+Execution Time (Exclusive JIT): 3.36337s
+Total Time (Inclusive JIT): 5.30008s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [16 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 0.07271s)
-  [Scan 10 steps execution: 0.0765s]
-  [Scan 10 steps execution: 0.0694s]
-Execution Time (Exclusive JIT): 0.14596s
-Total Time (Inclusive JIT): 0.21867s
+Warming up JIT compiler for 200 steps... (Done in 1.84995s)
+  [Scan 200 steps execution: 1.7582s]
+  [Scan 200 steps execution: 1.7081s]
+Execution Time (Exclusive JIT): 3.46711s
+Total Time (Inclusive JIT): 5.31706s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [16 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 0.10745s)
-  [Scan 10 steps execution: 0.1116s]
-  [Scan 10 steps execution: 0.1094s]
-Execution Time (Exclusive JIT): 0.22140s
-Total Time (Inclusive JIT): 0.32885s
+Warming up JIT compiler for 200 steps... (Done in 1.70544s)
+  [Scan 200 steps execution: 1.7919s]
+  [Scan 200 steps execution: 1.8260s]
+Execution Time (Exclusive JIT): 3.61879s
+Total Time (Inclusive JIT): 5.32423s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [16 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 0.06835s)
-  [Scan 10 steps execution: 0.0712s]
-  [Scan 10 steps execution: 0.0690s]
-Execution Time (Exclusive JIT): 0.14026s
-Total Time (Inclusive JIT): 0.20861s
+Warming up JIT compiler for 200 steps... (Done in 2.05950s)
+  [Scan 200 steps execution: 1.7056s]
+  [Scan 200 steps execution: 1.7680s]
+Execution Time (Exclusive JIT): 3.47405s
+Total Time (Inclusive JIT): 5.53355s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [17 graph interactions evaluated]
 
-SUCCESS (Time: 1.92s)
+SUCCESS (Time: 22.26s)
 
 >> Executing: examples/math.lisp (256MB Arrays)
-Warming up JIT compiler for 10 steps...
-[JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
+Warming up JIT compiler for 200 steps...
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
 
- (Done in 0.28895s)
-  [Scan 10 steps execution: 0.0966s]
-  [Scan 10 steps execution: 0.0746s]
-Execution Time (Exclusive JIT): 0.17142s
-Total Time (Inclusive JIT): 0.46037s
+ (Done in 1.66770s)
+  [Scan 200 steps execution: 1.6764s]
+  [Scan 200 steps execution: 1.5794s]
+Execution Time (Exclusive JIT): 3.25612s
+Total Time (Inclusive JIT): 4.92382s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 0.07513s)
-  [Scan 10 steps execution: 0.0763s]
-  [Scan 10 steps execution: 0.0668s]
-Execution Time (Exclusive JIT): 0.14316s
-Total Time (Inclusive JIT): 0.21830s
+Warming up JIT compiler for 200 steps... (Done in 1.57165s)
+  [Scan 200 steps execution: 1.5437s]
+  [Scan 200 steps execution: 1.5343s]
+Execution Time (Exclusive JIT): 3.07813s
+Total Time (Inclusive JIT): 4.64978s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 0.08510s)
-  [Scan 10 steps execution: 0.0942s]
-  [Scan 10 steps execution: 0.0796s]
-Execution Time (Exclusive JIT): 0.17403s
-Total Time (Inclusive JIT): 0.25913s
+Warming up JIT compiler for 200 steps... (Done in 1.59566s)
+  [Scan 200 steps execution: 1.6544s]
+  [Scan 200 steps execution: 1.5227s]
+Execution Time (Exclusive JIT): 3.17733s
+Total Time (Inclusive JIT): 4.77299s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 0.08236s)
-  [Scan 10 steps execution: 0.0730s]
-  [Scan 10 steps execution: 0.1061s]
-Execution Time (Exclusive JIT): 0.17971s
-Total Time (Inclusive JIT): 0.26207s
+Warming up JIT compiler for 200 steps... (Done in 1.52699s)
+  [Scan 200 steps execution: 1.4454s]
+  [Scan 200 steps execution: 1.5116s]
+Execution Time (Exclusive JIT): 2.95716s
+Total Time (Inclusive JIT): 4.48415s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
 
-SUCCESS (Time: 2.62s)
+SUCCESS (Time: 20.23s)

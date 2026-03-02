@@ -173,12 +173,12 @@ def run_file(filename):
                 steps = int(arg.split("=")[1])
                 
         import jax, jax.numpy as jnp
-        from jax_evaluator import scan_jax_core, JAX_MAX_NODES
+        from jax_evaluator import compiled_scan, JAX_MAX_NODES
         import time
         start_jit = time.time()
         print(f"Warming up JIT compiler for {steps} steps...", end="", flush=True)
         dummy_state = (jnp.zeros(JAX_MAX_NODES, dtype=jnp.uint32), jnp.uint32(0))
-        warmup, _ = jax.lax.scan(scan_jax_core, dummy_state, None, length=steps)
+        warmup, _ = compiled_scan(dummy_state, steps)
         warmup[0].block_until_ready()
         jit_time = time.time() - start_jit
         print(f" (Done in {jit_time:.5f}s)")
@@ -188,11 +188,17 @@ def run_file(filename):
         if use_gc:
             has_inters = True
             while has_inters:
+                _t0 = time.time()
                 has_inters, term = ic.run_scan(steps=steps, gc=True, root_term=term)
+                _t1 = time.time() - _t0
+                print(f"  [Scan {steps} steps execution: {_t1:.4f}s]")
         else:
             has_inters = True
             while has_inters:
+                _t0 = time.time()
                 has_inters = ic.run_scan(steps=steps)
+                _t1 = time.time() - _t0
+                print(f"  [Scan {steps} steps execution: {_t1:.4f}s]")
                 
         term = ic.ic_normal(term)
         exec_time = time.time() - start_exec
