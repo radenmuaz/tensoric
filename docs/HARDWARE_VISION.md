@@ -704,10 +704,11 @@ If our node only has 4 bits for a Tag and 4 bits for a Pointer, we can use the g
 **C. The Base-16 Tuple Tree (Hexadecimal Encoding)**
 If we have 16 available Tags (4-bit tag space), we can dedicate 16 tags to explicitly represent the Hexadecimal digits: `HEX_0`, `HEX_1`, ..., `HEX_F`.
 *   **The Structure:** A 32-bit float requires 8 Hex digits. We structure them not as a linked list (which forces sequential serial processing), but as a perfectly balanced binary tree of depth 3.
-    *   Depth 0: Root Node connects to two sub-trees.
-    *   Depth 1: Left and Right sub-trees.
-    *   Depth 2: 4 sub-trees.
+    *   Depth 0: 1 Root Node connects to two sub-trees.
+    *   Depth 1: 2 Nodes.
+    *   Depth 2: 4 Nodes.
     *   Depth 3: 8 Leaves. These leaves are the `HEX_X` nodes.
+    *   **Graph Footprint:** A single FP32 number requires exactly `1 + 2 + 4 + 8 = 15` structural IC nodes.
 *   **The Parallel Evaluator (IC Programs):** 
     *   Unlike the Bit-Serial zipper which takes 32 sequential steps, this balanced tree allows **$O(\log N)$ Parallel Addition**.
     *   **IC Program (Add):** An `ADD_TREE` node is applied to the root.
