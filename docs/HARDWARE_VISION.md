@@ -518,9 +518,43 @@ Hierarchical Chunking (The Graph of Graphs) struggles immensely with chaotic, no
 *   **The Overflow Catastrophe:** What happens if a sorting algorithm running *inside* a 16-node Micro ALU duplicates a node, requiring 17 slots? The Micro ALU physically overflows. It cannot simply "borrow" a slot from a neighbor because the architectures are hard-partitioned.
 *   **The Compiler Nightmare:** To run a general CS program on Hierarchical Chunking, the Compiler must guarantee, at compile time, that *no intermediate state of the computation inside a Micro Block will ever exceed 16 nodes*. For chaotic branching logic like a parser, this is computationally undecidable (the Halting Problem). The compiler would have to inject massive amounts of structural padding or force aggressive early-exits back to the Macro graph, entirely defeating the speed advantage.
 
-#### The Duality Verdict
-1.  **If the workload is purely Dense Arithmetic (Tensors/PDEs):** Use **Hierarchical Chunking**. The topology is statically knowable, overflows never happen, and the $O(1)$ block-vectorization perfectly maximizes FPU throughput.
-2.  **If the workload is General Purpose Compute (Compilers/Sorting/Logic):** Use **Segmented Paging**. The dynamic `BRG` routing acts as a universal safety valve, allowing the graph's topology to breathe and stretch across the entire memory fabric natively at runtime without crashing the block size limit.
+### 12.3 Concrete Example: The FP32 MAC & Matrix Multiplication
+To understand exactly how these architectures differ, let's trace a concrete **Multiply-Accumulate (MAC)** operation (`(A * B) + C`), the fundamental building block of an FP32 Matrix Multiplication.
+
+Assume we are using the **Native Node Embedding** strategy from Section 1, where 32-bit values live in an out-of-band `float32` array, and the IC graph only handles the routing.
+
+#### 1. The MAC in Hierarchical Chunking
+In Chunking, a MAC operation is a static, pre-compiled "Micro-Kernel" taking exactly 16 slots inside a Micro-ALU block.
+
+*   **The Micro-ALU Sub-Graph (The MAC Unit):**
+    Inside the 16-slot Micro array, we statically hardcode the IC reduction rules for a MAC:
+    `Slot 0`: `MUL_F(out=Slot 1, in1=EXT_IN_A, in2=EXT_IN_B)`
+    `Slot 1`: `ADD_F(out=EXT_OUT, in1=Slot 0, in2=EXT_IN_C)`
+*   **Input/Output (The Interfaces):**
+    Because the Micro-ALU cannot hold data or talk to other ALUs, we dedicate `Slot 13`, `14`, `15` as `EXT_IN` tags, and `Slot 12` as an `EXT_OUT` tag. These act as physical pins on a chip.
+*   **The Macro Graph (The Matrix Multiplier):**
+    The outer 16-bit Macro Graph doesn't know what a float is. It just sees millions of `MACRO` nodes (each pointing to a Micro-ALU).
+    To multiply  a $1024 \times 1024$ matrix, the Macro Graph topologically wires 1,024 `MACRO` nodes together in a binary reduction tree (like `FOLD_ADD`). 
+    When Macro Node X connects to Macro Node Y, the Macro execution engine literally pipes the float from the out-of-band `EXT_OUT` register of ALU X into the `EXT_IN` register of ALU Y.
+*   **The Result:** Perfect, static, deterministic $O(\log N)$ reduction. The XLA compiler maps this perfectly to GPU Tensor Cores.
+
+#### 2. The MAC in Segmented Paging
+In Paging, there are no "Interfaces" or "Kernels". The graph is just a massive chaotic ocean of 16-node Pages connected by Bridges.
+
+*   **The Sub-Graph:** 
+    The `MUL_F` and `ADD_F` nodes are written directly into whatever Page has free space. 
+    If `ADD_F` is in Page 42, and `MUL_F` is in Page 99:
+    `Page 42, Slot 5`: `ADD_F(out=Ptr(Page42, Slot6), in1=BRG(Page99, Slot2), in2=Ptr(Page42, Slot8))`
+    `Page 99, Slot 2`: `MUL_F(...)`
+*   **Input/Output:** 
+    There is no rigid `EXT_IN/OUT`. If `ADD_F` needs to read a float, it just accepts a pointer from anywhere in the global memory ocean. The Out-of-Band float array is globally indexed.
+*   **The Matrix Multiplier:**
+    You instantiate the exact same binary reduction tree of 1,024 MAC operations. But because there are no hard boundaries, the `DUP` nodes routing the vectors shatter and spread fluidly across the Pages. The hardware constantly inserts `BRG` tags whenever a local 16-node page fills up. 
+*   **The Result:** The exact same answer, but significantly slower for Matrix Math. The JAX evaluator wastes cycles constantly checking `if node == BRG` and looking up global page tables, destroying the static predictable vectorization that Chunking enjoys.
+
+#### Verdict on Representation
+*   **Chunking:** Program custom "IC Micro-Kernels" and wire them together using the Macro Graph.
+*   **Paging:** Write standard global IC code, and let the hardware auto-paginate the memory natively.
 
 ### Verdict on the Extreme 1-Byte Node
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
