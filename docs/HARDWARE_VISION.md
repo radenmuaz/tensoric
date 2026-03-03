@@ -896,3 +896,26 @@ Interaction Calculus handles I/O elegantly through asynchronous stream reduction
 *   **Display I/O (The Render Tree):** The IC Engine maintains a persistent root graph structure representing the screen buffer (e.g., a $1920 \times 1080$ nested Tuple-Tree of `uint8` color nodes). Instead of the IC engine "writing" to the screen, the external graphics hardware (or a separate JAX thread) simply reads the topographical state of this persistent IC Tree every $16\text{ms}$ (60Hz) and blasts it to the monitor.
 *   **Input Devices (Keyboard/Mouse):** When a user presses a key or moves the mouse, the hardware driver does not interrupt the IC execution loop. Instead, it asynchronously attaches a new IC node (e.g., `CHAR('A')` or `POS(X,Y)`) to a designated "Inbox" `WIRE` at the edge of the memory graph. On the next evaluation tick, the main IC program dynamically reduces these new nodes, propagating the UI state changes smoothly through the graph.
 *   **Verdict:** This pure functional approach eliminates hardware interrupts and context switching. Program state, numerical simulation, and UI rendering are all simply different branches of the exact same continuously evaluating `uint8` interaction graph.
+
+### 12.9 The Practicality Check: Memory Limits and Domain Viability
+Functional Programming (FP) and explicit graph-reduction architectures historically have a notorious reputation for being incredibly memory hungry. In pure Interaction Calculus, we do not have mutable memory (`x = 5; x = 6`). To change a variable, we must physically interact nodes and spawn a strictly new subgraph, relying aggressively on Garbage Collection to reclaim the old one. 
+
+When we encode *numbers themselves* as pure graphs (like the Hex Abacus or Topo-Posit), this memory pressure is magnified. A single floating-point number is no longer a dense 32-bit register; it expands into a localized graph of 10-20 structural nodes (consuming 160-320 bits of spatial memory). 
+
+How feasible is this architecture in practice?
+
+#### Case A: Consumer Hardware (Gaming PCs & Consoles)
+*   **The Physics / Rendering Constraint:** A modern gaming PC (e.g., RTX 4090) processes physics and graphics using extremely dense, contiguous matrices of `float32` arrays to compute billions of ray intersections or vertex shading operations per second. 
+*   **Feasibility:** **Extremely Poor.** Running a pure IC `uint8` topological number format on a consumer PC would be a disastrous mismatch. The CPU/GPU memory bandwidth would saturate instantly trying to traverse physical pointer chains just to add two colors together. For consumer gaming/graphics, the **Out-of-Band (OOB)** approach (Section 12.3) with standard JAX tensors is strictly mandatory. Pure IC numbers cannot compete with a modern hardware rendering ALU.
+
+#### Case B: LLM Inference 
+*   **The Memory-Bound Constraint:** LLM Inference is famously strictly memory-bandwidth bound. ALUs sit idle waiting for weights to load from VRAM. Furthermore, LLM weights are aggressively quantized (e.g., FP8, INT4) and clustered near $0$.
+*   **Feasibility:** **Exceptionally High (with ASICs/TPUs).** This is where pure IC shines. 
+    1.  Using **Block Floating Point (BFP)** or **Topological Posits**, the spatial footprint of small NN weights mathematically collapses. A Posit near $0.0$ requires fewer IC nodes than a large number! 
+    2.  Matrix Multiplication becomes an $O(1)$ topological wire plug.
+    3.  Because the IC execution model uses strict local pointer interactions ($-8$ to $+7$ spatial radius in the `uint8` Engine), an IC-native TPU can execute inference with virtually $0$ cache misses. Data routing *is* the computation.
+
+#### Case C: LLM Training
+*   **The Gradient Constraint:** Training Neural Networks involves dynamically computing massive gradient graphs via Backpropagation, spawning immense amounts of temporary state matrices before applying optimizer updates.
+*   **Feasibility:** **Currently Moderate / Heavily Bottlenecked.** While Inference uses a mostly static graph topology, Training is highly dynamic. The strict immutability of Interaction Calculus means that every single backprop step structurally clones and instantiates trillions of temporary IC nodes representing the gradient derivations. 
+*   **The GC wall:** The underlying Garbage Collector would become the absolute primary bottleneck of the datacenter. Unless the hardware possesses natively parallel, zero-cost Topological Annihilation lines (where complementary graphs instantly annihilate into free space without a mark-and-sweep penalty), training massive LLMs natively in pure IC graphs will saturate even HBM interconnects due to the ferocious rate of node allocation and deallocation.
