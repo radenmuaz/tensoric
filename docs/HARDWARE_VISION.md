@@ -670,14 +670,14 @@ Instead of representing 1 bit per node (using `BIT_0` and `BIT_1` tags), we can 
     *   **The Look-Up Table (LUT) Evaluator:** Because an 8-bit + 8-bit addition only has 65,536 possible outcomes, the IC hardware doesn't need to do bit-serial boolean gates. It simply uses the two 8-bit values as an index into a hardwired physical LUT.
     *   *Reduction Rule:* `[ADD_CHUNK](SINK(A), SINK(B))  =>  SINK( (A + B) & 0xFF )` alongside a `CARRY( (A + B) >> 8 )` node that moves to the next chunk.
     *   **IC Program (Mul):** Multiplication is a sequence of additions and shifts. A `MUL_CHUNK` node triggers a localized shift-and-add loop. It reads the multiplier byte, and for every `1` bit, it duplicates (`DUP`) the multiplicand's tuple tree, shifts it, and feeds it into an `ADD_CHUNK` reduction tree.
-    *   **Numerical Trace Example (Adding 1500 + 400):**
-        *   `1500` is 16-bit: `[Byte1=5, Byte0=220]` -> `(SINK(5), SINK(220))`
-        *   `400`  is 16-bit: `[Byte1=1, Byte0=144]` -> `(SINK(1), SINK(144))`
-        *   *Tick 1:* `ADD` hits `Byte0`. LUT evaluates `220 + 144 = 364`. 
-        *   LUT outputs `SINK(108)` (which is 364 & 255) and a `CARRY(1)`.
-        *   *Tick 2:* `ADD` moves to `Byte1` taking the `CARRY(1)`. 
-        *   *Tick 3:* LUT evaluates `5 + 1 + 1 (carry) = 7`.
-        *   *Result:* `(SINK(7), SINK(108))`, which is $7 \times 256 + 108 = 1900$.
+    *   **Numerical Trace Example (Adding 2.0 + 3.0 via IEEE 754):**
+        *   An IEEE 754 Float is 32 bits. Let's trace `2.0` + `3.0`.
+        *   `A (2.0)` in IEEE: `0x40000000`. Structurally: `TREE( SINK(0x40), SINK(0x00), SINK(0x00), SINK(0x00) )`
+        *   `B (3.0)` in IEEE: `0x40400000`. Structurally: `TREE( SINK(0x40), SINK(0x40), SINK(0x00), SINK(0x00) )`
+        *   *Tick 1 (Exponent Check):* The `ADD_FLOAT` subgraph hits the highest bytes (`SINK(0x40)`). It isolates the 8-bit Exponents using boolean LUTs. `Exp(A) = 128`, `Exp(B) = 128`. Since exponents match, no mantissa shifting is required.
+        *   *Ticks 2-4 (Mantissa Add):* The subgraph zippers down the lower 3 bytes (`SINK(0x00) + SINK(0x00)` ... `SINK(0x00) + SINK(0x40)`), performing byte-wise LUT addition with carries on the implicit $1.0$ mantissa bits.
+        *   *Tick 5 (Renormalize):* `1.0 + 1.5 = 2.5`. The mantissa evaluates to `1.25` with an exponent increment ($+1$). The subgraph modifies the highest byte to `0x40 + 0x00 + Exponent Increment`. Resulting Exponent = `129`.
+        *   *Result:* `TREE( SINK(0x40), SINK(0xA0), SINK(0x00), SINK(0x00) )`, which is `0x40A00000` (the exact IEEE 754 bit-pattern for `5.0`).
     *   **Verdict:** This reduces the spatial footprint from 32 nodes down to 4 nodes (an 8x memory compression) and reduces the addition latency from 32 interactions down to $\approx 4$ interactions.
     *   **The Look-Up Table (LUT) Evaluator:** Because an 8-bit + 8-bit addition only has 65,536 possible outcomes, the IC hardware doesn't need to do bit-serial boolean gates. It can simply use the two 8-bit values as an index into a hardwired physical LUT, instantly outputting the new 8-bit sum and the 1-bit carry in a single clock cycle.
     *   **Verdict:** This reduces the spatial footprint from 32 nodes down to 4 nodes (an 8x memory compression) and reduces the addition latency from 32 interactions down to 4 interactions.
