@@ -980,3 +980,36 @@ When the GC program finishes, it leaves behind millions of dead topological `ADD
 To break the paradox, Garbage Collection execution must theoretically exist strictly **one physical layer below** the calculus itself.
 *   The Calculus dictates the structural logic.
 *   The Substrate (JAX SIMD vector arrays, or Physical TPU Silicon voltages) manages the reclamation of the spatial void.
+
+### 12.13 The Minimal IC Instruction Set Architecture (ISA)
+If we were to strip away the TPU and build a custom ASIC exclusively dedicated to running the vectorized JAX TensorIC evaluator, what is the absolute minimum hardware logic required in the ALU?
+
+By analyzing the execution loop of `tensoric/staticic.py`, we can definitively isolate the minimal Instruction Set Architecture (ISA) for a spatial IC array processor. It requires exactly **zero floating-point units**, **zero multiply-accumulators (MACs)**, and **no complex branch prediction**.
+
+The pure IC ISA evaluates billions of interaction rules using only 6 microscopic hardware primitives:
+1.  **`GATHER` (Load) & `SCATTER` (Store):** For reading and mutating spatial node addresses in SRAM (e.g., `jax.numpy.take` and `jax.lax.scatter`).
+2.  **`BIT_SHIFT_LR`:** To unpack the 4-bit Tag and 4-bit Pointer payload from the `uint8` node structure.
+3.  **`BIT_AND` / `BIT_OR`:** To physically stitch updated subgraphs together before writing them back to memory.
+4.  **`CMP_EQ` (Boolean Compare):** To pattern-match interacting node pairs against the Interaction Calculus 17-Rule Truth Table. 
+5.  **`BUMP_ADD`:** A simple integer incrementer specifically for allocating the next free SRAM index (`self.heap_pos += n`).
+6.  **`PREFIX_SUM`:** An optional but highly recommended hardcoded binary reduction tree across the physical chip strictly to accelerate $O(\log N)$ Garbage Collection.
+
+This ISA is so tiny that you could physically place thousands of these custom "IC-Cores" on a single millimeter of silicon.
+
+### 12.14 Alternative Non-Systolic Array Architectures
+While TPUs strictly march data through Systolic Arrays (perfect for $[-8, +7]$ highly localized `uint8` pointer physics), there are other classes of array-based execution computers. How does a pure vectorized IC engine map onto them?
+
+#### 1. Standard SIMT GPUs (Nvidia CUDA / AMD CDNA)
+Unlike a TPU TPU MXU that systolically cascades data sequentially, standard GPUs execute massive blocks of threads (Warps) that all read/write to VRAM simultaneously. 
+*   **The Fit:** They are incredible at vectorized operations like the Prefix-Sum GC. However, for the primary IC evaluation loop, standard GPUs suffer from high VRAM latency when thread warps try to resolve chaotic, non-contiguous pointer jumps (even within a restricted integer radius). 
+*   **Verdict:** Highly capable, but heavily memory-bandwidth bound compared to pure systolic SRAM.
+
+#### 2. Processing-In-Memory (PIM) / Computational RAM (C-RAM)
+PIM architectures physically embed tiny logic gates directly inside the SRAM/DRAM memory cells, entirely eliminating the CPU-to-Memory Von Neumann bottleneck.
+*   **The Fit:** This is practically the holy grail for Interaction Calculus. Because the IC ISA (Section 12.13) only requires bitwise matching and shifting, the logic gates embedded in the SRAM do not need to be expensive ALUs. The memory *itself* becomes the computational fabric. Neighboring SRAM cells can physically perform local Interaction Calculus reductions independent of any central processor.
+*   **Verdict:** The ultimate physical manifestation of Interaction Calculus dynamics.
+
+#### 3. FPGA Spatial Crossbars
+Unlike fixed silicon chips, FPGAs allow routing wires to be synthesized arbitrarily. 
+*   **The Fit:** Instead of treating the IC graph as an array in a contiguous memory block, an FPGA could synthesize a massive physical Crossbar Switch. This would allow an active node at spatial position $0$ to physically interact with a node at spatial position $200$ in exactly $1$ clock cycle ($O(1)$) by blasting a signal across the crossbar matrix, overriding the need to serialize execution strictly through memory arrays.
+*   **Verdict:** Excellent for breaking the strict localization penalty of array-based routing, but FPGA crossbars scale poorly (taking exponential routing logic as node count increases) and are generally limited to smaller, high-speed physics controller subgraphs.
