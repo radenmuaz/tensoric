@@ -771,6 +771,19 @@ We can compress the maximum wire length down from 255 to just **15** by using a 
     *   *Result:* `TUPLE_16( ..., Dist=0, Dist=7, Dist=6, Dist=12 )` which is Hex `0x076C` (Decimal $1900$).
 *   **Verdict:** This is perhaps the ultimate "Pure IC Structure". It caps memory bloat entirely (max 257 nodes per number) and guarantees that structural evaluation traces never exceed a depth of 15 interactions per digit, while simultaneously providing purely topological $O(1)$ addition routing.
 
+### 12.5.5 Arithmetic Complexity Comparison (FP32 Baseline)
+How do these pure structural Interaction Calculus representations stack up against a standard silicon Floating Point Unit (FPU) for evaluating a 32-bit number? 
+
+| Representation Scheme | Space (Footprint) | ADD Latency (IC Ticks) | MUL Latency (IC Ticks) | Hardware Assist? |
+| :--- | :--- | :--- | :--- | :--- |
+| **Standard ALU FPU (Baseline)** | 32 Bits (1 Register) | $O(1)$ ($\approx 1$ cycle) | $O(1)$ ($\approx 3$ cycles) | Yes (Dense Silicon ALU) |
+| **Bit-Serial 32-Node List** | 33 Nodes | $O(N) = 32$ | $O(N^2) = 1024$ | No (Pure IC Structure) |
+| **A. Byte-Chunk Base-256** | 5 Nodes | $O(N/8) = 4$ | $O((N/8)^2) = 16$ | Yes (8-bit Silicon LUTs) |
+| **B. Positional Unary (IEEE)**| up to $2^{23}$ Nodes | $O(2^8)$ to align Exp | $O(V_{max}^2)$ | No (Pure IC Structure) |
+| **C. Base-16 Tuple Tree** | 15 Nodes | $O(\log_{16} N) = 3$ | $O(\log_{16} N) = 3$ | Yes (4-bit Silicon LUTs) |
+| **D. Unary Byte Abacus** | 5 to 1,025 Nodes | $O(1)$ plug + $O(4)$ carry | $O(V_{byte}^2)$ | Yes (Distance overflow cutoff) |
+| **E. 16-Nibble Hex Abacus** | 17 to 257 Nodes | $O(1)$ plug + $O(16)$ carry| $O(V_{nibble}^2)$ | Yes (Distance overflow cutoff) |
+
 ### 12.6 Escaping IEEE 754: Native IC Number Formats
 The IEEE 754 Floating-Point standard was invented in 1985 specifically to minimize the number of silicon logic gates (carry-lookahead adders, barrel shifters) required on early von Neumann microprocessors. 
 
