@@ -670,6 +670,14 @@ Instead of representing 1 bit per node (using `BIT_0` and `BIT_1` tags), we can 
     *   **The Look-Up Table (LUT) Evaluator:** Because an 8-bit + 8-bit addition only has 65,536 possible outcomes, the IC hardware doesn't need to do bit-serial boolean gates. It simply uses the two 8-bit values as an index into a hardwired physical LUT.
     *   *Reduction Rule:* `[ADD_CHUNK](SINK(A), SINK(B))  =>  SINK( (A + B) & 0xFF )` alongside a `CARRY( (A + B) >> 8 )` node that moves to the next chunk.
     *   **IC Program (Mul):** Multiplication is a sequence of additions and shifts. A `MUL_CHUNK` node triggers a localized shift-and-add loop. It reads the multiplier byte, and for every `1` bit, it duplicates (`DUP`) the multiplicand's tuple tree, shifts it, and feeds it into an `ADD_CHUNK` reduction tree.
+    *   **Numerical Trace Example (Adding 1500 + 400):**
+        *   `1500` is 16-bit: `[Byte1=5, Byte0=220]` -> `(SINK(5), SINK(220))`
+        *   `400`  is 16-bit: `[Byte1=1, Byte0=144]` -> `(SINK(1), SINK(144))`
+        *   *Tick 1:* `ADD` hits `Byte0`. LUT evaluates `220 + 144 = 364`. 
+        *   LUT outputs `SINK(108)` (which is 364 & 255) and a `CARRY(1)`.
+        *   *Tick 2:* `ADD` moves to `Byte1` taking the `CARRY(1)`. 
+        *   *Tick 3:* LUT evaluates `5 + 1 + 1 (carry) = 7`.
+        *   *Result:* `(SINK(7), SINK(108))`, which is $7 \times 256 + 108 = 1900$.
     *   **Verdict:** This reduces the spatial footprint from 32 nodes down to 4 nodes (an 8x memory compression) and reduces the addition latency from 32 interactions down to $\approx 4$ interactions.
     *   **The Look-Up Table (LUT) Evaluator:** Because an 8-bit + 8-bit addition only has 65,536 possible outcomes, the IC hardware doesn't need to do bit-serial boolean gates. It can simply use the two 8-bit values as an index into a hardwired physical LUT, instantly outputting the new 8-bit sum and the 1-bit carry in a single clock cycle.
     *   **Verdict:** This reduces the spatial footprint from 32 nodes down to 4 nodes (an 8x memory compression) and reduces the addition latency from 32 interactions down to 4 interactions.
@@ -682,6 +690,11 @@ If our node only has 4 bits for a Tag and 4 bits for a Pointer, we can use the g
     *   *Reduction Rule:* No complex active nodes needed. Just wire `A.out -> B.in`.
 *   **IC Program (Mul):** Multiplication `$A \times B$` is function composition. You wire the entire chain of `$A$` to replace *every single node* in the chain of `$B$`.
     *   *Execution:* The `MUL` node triggers a massive sequential `DUP`licate pass. It duplicates chain $A$ exactly $B$ times.
+    *   **Numerical Trace Example (Adding 3 + 2):**
+        *   `A (3)`: `Wire_In -> Wire -> Wire -> MARKER`
+        *   `B (2)`: `Wire_In -> Wire -> MARKER`
+        *   *Tick 1:* The `ADD` topological rewrite directly plugs `A.out` into `B.in`.
+        *   *Result:* `Wire_In -> Wire -> Wire -> Wire -> Wire -> MARKER` (Distance = 5). $O(1)$ time latency.
 *   **Drawback:** To represent `1,000,000`, you need a wire that is `1,000,000` nodes long. It inflates memory wildly.
 *   **Drawback:** To represent `1,000,000`, you need a wire that is `1,000,000` nodes long. It is physically equivalent to Unary Church numerals.
 
@@ -701,6 +714,14 @@ If we have 16 available Tags (4-bit tag space), we can dedicate 16 tags to expli
     *   **IC Program (Mul):** A `MUL_TREE` acts as a spatial scatter-gather. 
         1. `MUL_TREE` duplicates the entire multiplicand tree 8 times, shifting its significance linearly based on the tree branch index.
         2. It spawns an $O(\log N)$ binary reduction tree of `ADD_TREE` nodes to concurrently sum all 8 shifted partial products.
+    *   **Numerical Trace Example (Adding 0x1A + 0x27):**
+        *   `A (0x1A)`: `TREE( HEX(1), HEX(10) )`
+        *   `B (0x27)`: `TREE( HEX(2), HEX(7) )`
+        *   *Tick 1:* `ADD_TREE` hits roots and `DUP`s itself down both left and right sibling branches concurrently.
+        *   *Tick 2:* Right leaf `ADD_HEX` hits `HEX(10)` and `HEX(7)`. Left leaf `ADD_HEX` hits `HEX(1)` and `HEX(2)`.
+        *   *Tick 3 (Concurrent eval):* Right side evaluates `10 + 7 = 17`. It outputs `HEX(1)` with a `CARRY(1)`. Left side evaluates `1 + 2 = 3` and waits for carry.
+        *   *Tick 4:* Carry propagates to Left leaf. `3 + 1 = 4`.
+        *   *Result:* `TREE( HEX(4), HEX(1) )` = `0x41` (which is decimal 65).
     *   **Verdict:** This scheme drastically increases evaluation throughput by converting temporal sequence (Bit-Serial) into spatial concurrency (Tree Parallelism), completing a 32-bit addition in $\approx 3$ topological depth steps rather than 32 sequential steps.
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
