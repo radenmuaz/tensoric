@@ -869,3 +869,30 @@ If we are doing massive Number Theory, Cryptography (RSA), or combinatorial topo
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
 **For a software JAX engine:** The 16-bit format (`uint16`: 8-bit tag, 8-bit pointer) is the golden ratio of compression versus routing speed. The $-128$ to $+127$ radius is wide enough to avoid excessive wiring, while fully capitalizing on the topographical locality of Interaction Calculus.
+
+### 12.8 Scaling pure `uint8` IC to TPU Systolic Arrays
+If we commit to the ultimate theoretical compression limit—the 8-bit node (`uint8`: 4-bit Tag, 4-bit Relative Pointer with a $-8$ to $+7$ spatial radius)—how can we make this purely functional, general-purpose architecture actually competitive with a Von Neumann CPU? JAX allows us to execute this engine directly on Tensor Processing Units (TPUs).
+
+#### 1. Mapping graph topology to Systolic Arrays
+TPUs are essentially massive grids of MAC (Multiply-Accumulate) units designed to pass data sequentially from one ALUs to its neighbor (a systolic array). 
+Our `uint8` IC engine perfectly mimics this architecture conceptually:
+*   Because pointers are restricted to a tiny radius of $[-8, +7]$, the Interaction Calculus graph is physically forced to be highly localized.
+*   In a JAX `jax.lax.scan` loop, the IC evaluator does not need to perform random memory access across gigabytes of RAM. Instead, local graph sectors can be pinned directly into the ultra-fast SRAM of individual TPU Matrix Multiply Units (MXUs).
+*   **The Execution Pipeline:** 
+    1.  The TPU MXU loads a sector of the `uint8` graph (e.g., 256 nodes). 
+    2.  Vectorized SIMD operations identify active node pairs locally.
+    3.  A highly optimized sequence of boolean shifts (to unpack the 8-bit relative pointers) and logical `AND/OR`s executes the graph rewrites in parallel across the MXU.
+    4.  The new graph state is passed systolically to the adjacent MXU for the next tick.
+
+#### 2. Scaling from Coral Edge TPUs to Datacenter Pods
+*   **Coral Edge TPU (4 TOPS, 8MB SRAM):** The tiny 8-bit payload is perfectly suited for Edge TPUs. 8MB of SRAM can hold an astonishing **8 Million IC Nodes** completely on-chip. This is more than enough space to embed a highly complex real-time physics engine, robotics controller, or local audio DSP graph directly onto the edge device, executing with zero main memory (DRAM) access bottlenecks.
+*   **Workstation/Datacenter TPUs (v4/v5e):** Larger TPUs possess drastically larger SRAM (up to 32MB per core) and High Bandwidth Memory (HBM). To utilize this scale, the 8-bit architecture must employ **Hierarchical Paging (Bank Switching)**. 
+    *   The overall program is divided into millions of 256-node standard IC "Pages".
+    *   Special `BRG` (Bridge) nodes exist at the edges of the $[-8, +7]$ radius. When a signal hits a `BRG` node, it doesn't jump 8 spaces; it triggers a cross-page DMA transfer across the TPU's Inter-Core Interconnect (ICI), jumping to an entirely different memory bank in the datacenter pod.
+
+#### 3. General Purpose Interactivity (Display & Input I/O)
+To replace a CPU, the TPU IC engine cannot just compute numbers in a black box; it needs real-time I/O.
+Interaction Calculus handles I/O elegantly through asynchronous stream reductions rather than imperative hardware interrupts:
+*   **Display I/O (The Render Tree):** The IC Engine maintains a persistent root graph structure representing the screen buffer (e.g., a $1920 \times 1080$ nested Tuple-Tree of `uint8` color nodes). Instead of the IC engine "writing" to the screen, the external graphics hardware (or a separate JAX thread) simply reads the topographical state of this persistent IC Tree every $16\text{ms}$ (60Hz) and blasts it to the monitor.
+*   **Input Devices (Keyboard/Mouse):** When a user presses a key or moves the mouse, the hardware driver does not interrupt the IC execution loop. Instead, it asynchronously attaches a new IC node (e.g., `CHAR('A')` or `POS(X,Y)`) to a designated "Inbox" `WIRE` at the edge of the memory graph. On the next evaluation tick, the main IC program dynamically reduces these new nodes, propagating the UI state changes smoothly through the graph.
+*   **Verdict:** This pure functional approach eliminates hardware interrupts and context switching. Program state, numerical simulation, and UI rendering are all simply different branches of the exact same continuously evaluating `uint8` interaction graph.
