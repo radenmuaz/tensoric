@@ -313,7 +313,18 @@ Instead of storing the exact memory index of the target node, the 8-bit pointer 
 *   **Mechanism:** If the pointer is an 8-bit signed integer ($-128$ to $+127$), the hardware resolves the absolute address using `Target_Index = Current_Index + Offset`.
 *   **The Physics of IC Graphs:** Interaction Calculus graphs are highly localized! During `APP-LAM` annihilations, the new nodes are almost always spawned directly adjacent to the interacting pair. The majority of pointers in a healthy IC graph only point to immediate neighbors within a distance of $\pm 10$.
 *   **The Hardware Win:** The JAX engine uses `jax.lax.scan` across contiguous memory. Relative addressing completely removes the need to update absolute pointers during Array Compaction (Garbage Collection). If an entire subnet shifts left by 50 indices, the relative intra-network pointers do not change!
-*   **The Escape Hatch:** What if a node needs to route to a distant root farther than 127 slots? You insert a `VAR` (variable/indirection) wire node. A chain of `VAR` nodes acts as a "transmission wire", stepping the pointer 127 indices at a time across the memory fabric.
+
+#### The Long-Jump Problem (Distance > 127)
+What if the IC engine needs to connect a node at Index `0` to a node at Index `4096`? An 8-bit signed pointer maxes out at `127`. We have two structural solutions:
+
+1. **The $O(N)$ Chain (The Extension Cord):**
+   We can simply insert a chain of `VAR` (variable/indirection) nodes. A `VAR` acts as a bare wire. To travel 4,096 indices, the compiler inserts $4096 / 127 \approx 32$ `VAR` nodes connected in series. 
+   *    *Drawback:* Every time a substitution travels across this wire, it takes 32 clock cycles (interactions) to traverse it. For a dense neural network, this latency adds up unacceptably.
+2. **The $O(1)$ Compound Jump Node (`JMP`):**
+   Instead of a chain of tiny wires, we introduce a dedicated `JMP` (Jump) IC Node. Because a standard Binary IC node has two child ports (e.g., `APP(left, right)`), the `JMP` node co-opts *both* ports to form a single massive relative pointer.
+   *    *Mechanism:* A `JMP` node treats its `port_1` and `port_2` payloads not as two distinct 8-bit pointers, but as a single **16-bit signed integer** ($-32,768$ to $+32,767$). 
+   *    *Evaluation:* When a signal hits a `JMP` node, the crossbar inherently extracts the 16-bit payload and fires the signal exactly to `Current_Index + 4096` in a single tick.
+   *    *Verdict:* The `JMP` node perfectly solves the boundary issue. 99% of your nodes use standard 8-bit relative pointers ensuring maximum memory density, while the compiler strategically drops a `JMP` node anytime it needs to route an $O(1)$ long-distance highway across the physical die!
 
 ### B. Segmented Paging (Bank Switching)
 Mimicking the memory controllers of 8-bit retro consoles (like the NES), we can divide the massive array into 256-node "Pages" or "Banks".
