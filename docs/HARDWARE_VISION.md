@@ -779,10 +779,20 @@ How do these pure structural Interaction Calculus representations stack up again
 | **Standard ALU FPU (Baseline)** | 32 Bits (1 Register) | $O(1)$ ($\approx 1$ cycle) | $O(1)$ ($\approx 3$ cycles) | Yes (Dense Silicon ALU) |
 | **Bit-Serial 32-Node List** | 33 Nodes | $O(N) = 32$ | $O(N^2) = 1024$ | No (Pure IC Structure) |
 | **A. Byte-Chunk Base-256** | 5 Nodes | $O(N/8) = 4$ | $O((N/8)^2) = 16$ | Yes (8-bit Silicon LUTs) |
+| **A. Byte-Chunk (Pure IC)** | 5 Nodes + ALU Graph | $O(8)$ per Byte = 32 | $O(N^2) = 1024$ | No (Unpacks payload to bit-serial) |
 | **B. Positional Unary (IEEE)**| up to $2^{23}$ Nodes | $O(2^8)$ to align Exp | $O(V_{max}^2)$ | No (Pure IC Structure) |
 | **C. Base-16 Tuple Tree** | 15 Nodes | $O(\log_{16} N) = 3$ | $O(\log_{16} N) = 3$ | Yes (4-bit Silicon LUTs) |
+| **C. Base-16 Tree (Pure IC)** | 15 Nodes + ALU Graph | $O(\log N) \times O(4) = 12$ | $O(N^2)$ | No (Unpacks payload to bit-serial) |
 | **D. Unary Byte Abacus** | 5 to 1,025 Nodes | $O(1)$ plug + $O(4)$ carry | $O(V_{byte}^2)$ | Yes (Distance overflow cutoff) |
+| **D. Byte Abacus (Pure IC)**| 5 to 1,025 Nodes | $O(1)$ plug + $O(255)$ mod | $O(V_{byte}^2)$ | No (Active Modulo/Subtraction graph) |
 | **E. 16-Nibble Hex Abacus** | 17 to 257 Nodes | $O(1)$ plug + $O(16)$ carry| $O(V_{nibble}^2)$ | Yes (Distance overflow cutoff) |
+| **E. Hex Abacus (Pure IC)** | 17 to 257 Nodes | $O(1)$ plug + $\mathbf{O(15)}$ mod| $O(V_{nibble}^2)$ | **No (Active Modulo graph $\approx 15$ ticks)** |
+
+*Note on Pure IC Variants:* 
+If you remove hardware LUTs and Overflow Cutoffs, the IC graph must evaluate the math using strictly structural node rewrites.
+*   For **Schemes A and C** (Byte/Hex payloads), a "Pure IC" implementation forces the active `ADD` node to dynamically unpack the 8-bit pointer payloads back into 8-node Bit-Serial chains, perform boolean logic, and repack them. This completely destroys the latency advantage, reverting performance back to the Bit-Serial baseline.
+*   For **Schemes D and E** (Unary Abacus), a "Pure IC" implementation is completely viable without unpacking to bit-serial! However, without a hardware overflow cutoff, the IC engine must deploy an active `MODULO` subgraph that races down the wires. For Scheme D (Byte), this modulo subtraction takes up to 255 ticks for every byte. For Scheme E (Hex), the modulo subtraction takes a maximum of **15 ticks** per nibble. 
+*   **Ultimate Conclusion:** The **Pure IC 16-Nibble Hex Abacus (E)** is the most viable pure structural representation (No Hardware ALUs/LUTs), capping addition latency to $\approx 15$ interactions per column.
 
 ### 12.6 Escaping IEEE 754: Native IC Number Formats
 The IEEE 754 Floating-Point standard was invented in 1985 specifically to minimize the number of silicon logic gates (carry-lookahead adders, barrel shifters) required on early von Neumann microprocessors. 
