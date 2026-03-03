@@ -300,3 +300,33 @@ To maximize Matrix Multiplication speed in IC, which numerical representation sh
 
 ### Verdict on IC Matrix Math
 Interaction Calculus is strictly superior to Von Neumann architectures for Matrix / MAC operations in terms of **Control Flow complexity**. There are no loops to explicitly code or unroll. The sheer act of wiring a `Matrix` to a `Multiply` node intrinsically triggers an optimally parallel $O(\log N)$ spatial scatter-gather reduction across the entire hardware fabric automatically.
+
+## 11. Breaking the 8-Bit Barrier: Addressing Beyond 256 Nodes
+
+As discussed in the Micro-Node architectures chapter, shrinking down to an 8-bit `uint8` pointer is incredibly desirable for fitting models entirely inside ultra-fast SRAM or GPU shared memory. However, `uint8` normally restricts a pointer to strictly 256 physical memory addresses.
+
+If the IC array size is larger than 256 (e.g., $1,000,000$ nodes), how can an 8-bit pointer address the graph? We must move away from **Absolute Addressing** (where the pointer acts as a global literal index) and employ clever architectural techniques.
+
+### A. Relative Addressing (Pointer Offsets)
+Instead of storing the exact memory index of the target node, the 8-bit pointer stores a **distance (offset)** from the current node's physical index.
+
+*   **Mechanism:** If the pointer is an 8-bit signed integer ($-128$ to $+127$), the hardware resolves the absolute address using `Target_Index = Current_Index + Offset`.
+*   **The Physics of IC Graphs:** Interaction Calculus graphs are highly localized! During `APP-LAM` annihilations, the new nodes are almost always spawned directly adjacent to the interacting pair. The majority of pointers in a healthy IC graph only point to immediate neighbors within a distance of $\pm 10$.
+*   **The Hardware Win:** The JAX engine uses `jax.lax.scan` across contiguous memory. Relative addressing completely removes the need to update absolute pointers during Array Compaction (Garbage Collection). If an entire subnet shifts left by 50 indices, the relative intra-network pointers do not change!
+*   **The Escape Hatch:** What if a node needs to route to a distant root farther than 127 slots? You insert a `VAR` (variable/indirection) wire node. A chain of `VAR` nodes acts as a "transmission wire", stepping the pointer 127 indices at a time across the memory fabric.
+
+### B. Segmented Paging (Bank Switching)
+Mimicking the memory controllers of 8-bit retro consoles (like the NES), we can divide the massive array into 256-node "Pages" or "Banks".
+
+*   **Mechanism:** The `uint8` pointer acts as an Absolute index *only within the local 256-node memory page*. 
+*   **The Page Bridge Node:** We introduce a special `BRG` (Bridge) IC node tag. A `BRG` node requires two 8-bit ports. The first port stores the `Target_Page_ID`, and the second port stores the `Target_Index_in_Page`.
+*   **How it Evaluates:** The local PE evaluates interactions identically to a small 256-node graph. When an interaction hits a `BRG` node, the crossbar switch routes the data payload to the specified external Page ID. 
+
+### C. Hierarchical Chunking (The Graph of Graphs)
+Instead of a flat array of nodes, the IC engine treats nodes as hierarchical boundaries.
+
+*   **Mechanism:** An 8-bit node doesn't contain the literal arithmetic logic. Instead, a specific Tag (e.g., `MACRO`) points to an entirely separate *embedded IC space*. 
+*   **The Hardware Win:** This allows the JAX engine to run thousands of small $16 \times 16$ grid tensors (each fitting in a 256-node `uint8` space). The upper-level graph only handles the macroscopic routing between the grids. This perfectly mirrors tensor-core architecture, where small block matrices ($16 \times 16$) are treated as primitive scalar tokens by the higher-level scheduler.
+
+### Verdict
+For a pure JAX vectorized IC engine aiming for extreme memory compression, **Relative Addressing (Offsets)** is the most mathematically elegant solution. It exploits the topological locality of Interaction Calculus, eliminates the need for pointer-rewriting during Garbage Collection, and perfectly maps to continuous vectorized shift operations (`jnp.roll`).
