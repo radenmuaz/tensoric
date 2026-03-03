@@ -499,6 +499,27 @@ If the strict constraints are: (1) Use 4-bit Tag + 4-bit Pointers, (2) Must be c
 *   **Jittable & Static Shape:** **Fail.** While it can technically be compiled using `jax.lax.while_loop()`, the loop explicitly halts the parallel vectorized pipeline.
 *   **FPU Competitiveness:** **Zero.** If you have an $O(N)$ sequential data dependency loop inside your vector kernel just to route a signal to an ALU, you lose all hardware accelerator advantages. You cannot compete with an FP32 FPU if your "wires" take proportional sequential clock cycles to read.
 
+### 12.2 Generalizing to Non-Numeric CS Programs (Branching, Loops, Parsing)
+Evaluating a dense $1024 \times 1024$ FP32 matrix multiplication is highly predictable. The topology is known at compile time, and the structures don't dynamically change shape. But how do these 4-bit constraint architectures handle **regular computer science workloads**—like a parser, a sorting algorithm, or complex conditional loops—where the graph size breathes, branches, and stretches unpredictably at runtime?
+
+Here, the ranking dynamics shift considerably.
+
+#### How Segmented Paging Generalizes (The Winner for General CS)
+Segmented Paging (Bank Switching) handles dynamic structural growth significantly better than Chunking.
+*   **The Physics of Branching:** When a general program executes an `IF/ELSE` branch or a `WHILE` loop, the IC engine evaluates this by actively duplicating sub-graphs (`DUP` nodes interacting with `LAM`/`APP` structures) or erasing unused branches (`ERA` nodes). The graph physically expands and contracts.
+*   **Why Paging Wins:** In Segmented Paging, all 16-node cells form a unified, flat, globally addressable ocean of memory (via the `BRG` tags). If Cell #42 fills up because a `while` loop generated 8 new nodes, the engine simply allocates free nodes in adjacent Cell #43 and inserts a `BRG` node. 
+*   **The GC Advantage:** A global Garbarge Collection (compaction) pass can seamlessly migrate active nodes across Cell boundaries to defragment memory without breaking the compiler's logical semantics. It is highly robust to unpredictable topological growth.
+
+#### How Hierarchical Chunking Generalizes (The Loser for General CS)
+Hierarchical Chunking (The Graph of Graphs) struggles immensely with chaotic, non-numeric workloads.
+*   **The Physics of Encapsulation:** In Chunking, a 16-node Micro ALU is a locked, isolated black box. The Macro Graph only sees the single `MACRO` node.
+*   **The Overflow Catastrophe:** What happens if a sorting algorithm running *inside* a 16-node Micro ALU duplicates a node, requiring 17 slots? The Micro ALU physically overflows. It cannot simply "borrow" a slot from a neighbor because the architectures are hard-partitioned.
+*   **The Compiler Nightmare:** To run a general CS program on Hierarchical Chunking, the Compiler must guarantee, at compile time, that *no intermediate state of the computation inside a Micro Block will ever exceed 16 nodes*. For chaotic branching logic like a parser, this is computationally undecidable (the Halting Problem). The compiler would have to inject massive amounts of structural padding or force aggressive early-exits back to the Macro graph, entirely defeating the speed advantage.
+
+#### The Duality Verdict
+1.  **If the workload is purely Dense Arithmetic (Tensors/PDEs):** Use **Hierarchical Chunking**. The topology is statically knowable, overflows never happen, and the $O(1)$ block-vectorization perfectly maximizes FPU throughput.
+2.  **If the workload is General Purpose Compute (Compilers/Sorting/Logic):** Use **Segmented Paging**. The dynamic `BRG` routing acts as a universal safety valve, allowing the graph's topology to breathe and stretch across the entire memory fabric natively at runtime without crashing the block size limit.
+
 ### Verdict on the Extreme 1-Byte Node
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
