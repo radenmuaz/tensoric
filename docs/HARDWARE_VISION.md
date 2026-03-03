@@ -361,7 +361,19 @@ This means a node can only ever point to an immediate neighbor within a distance
 *   **The Compaction Tax:** If you run Garbage Collection (Array Compaction), shifting nodes even a few slots to close dead space can instantly break the $\pm 7$ pointer constraint, requiring the engine to halt and insert `VAR` chains dynamically.
 *   **The Hardware Win:** The crossbar routing matrix on silicon for a 4-bit distance is microscopic. A PE (Processing Element) simply checks the 8 adjacent neighbors physically hard-wired next to it on the 2D mesh array! 
 
+### Escaping the 4-Bit Bound (Segmented Paging & Hierarchical Chunking)
+If we refuse to accept the latency of $O(N)$ `VAR` chains, we must employ architectural boundaries.
+
+1.  **Segmented Paging (The 16-Node Cell):**
+    We divide the silicon into distinct "Cells" containing exactly 16 nodes each. Inside the Cell, the 4-bit pointer acts as an **Absolute Index** ($0$ to $15$). 
+    * To send a signal *outside* the 16-node Cell, we use a 1-Byte `BRG` (Bridge) Node. The first Byte specifies the Tag (`BRG`), the second Byte specifies the `Target_Cell_ID`, and the third Byte specifies the `Target_Index`. 
+    * This allows ultra-dense 1-Byte internal logic, while explicitly paying a 3-Byte penalty only when crossing Cell boundaries.
+
+2.  **Hierarchical Chunking (The Graph of Graphs):**
+    We constrain 1-Byte nodes so they are *forbidden* from pointing outside their local 16-node array. If a subgraph requires more than 16 nodes, it is explicitly encapsulated into a `MACRO` node on a higher-level 16-bit array.
+    *   **The Tensor Core Analogy:** The 1-Byte 16-node array becomes a solid-state "ALU Primitive" (like a micro-kernel for an 8-bit multiplier), while the higher-level 16-bit graph handles the macroscopic routing of data between these ALUs.
+
 ### Verdict on the Extreme 1-Byte Node
-A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains rather than doing actual arithmetic. 
+A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
 **For a software JAX engine:** The 16-bit format (`uint16`: 8-bit tag, 8-bit pointer) is the golden ratio of compression versus routing speed. The $-128$ to $+127$ radius is wide enough to avoid excessive wiring, while fully capitalizing on the topographical locality of Interaction Calculus.
