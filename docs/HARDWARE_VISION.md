@@ -506,13 +506,15 @@ Here, the ranking dynamics shift considerably.
 
 #### How Segmented Paging Generalizes (The Winner for General CS)
 Segmented Paging (Bank Switching) handles dynamic structural growth significantly better than Chunking.
+*   **Cross-Graph Communication (Allowed):** In Segmented Paging, all 16-node cells form a unified, flat, globally addressable ocean of memory. A node in Cell `A` can explicitly point to a node in Cell `B` by using a `BRG` tag. This means sub-graphs can dynamically interact, entangle, and share data across the entire hardware die natively.
 *   **The Physics of Branching:** When a general program executes an `IF/ELSE` branch or a `WHILE` loop, the IC engine evaluates this by actively duplicating sub-graphs (`DUP` nodes interacting with `LAM`/`APP` structures) or erasing unused branches (`ERA` nodes). The graph physically expands and contracts.
-*   **Why Paging Wins:** In Segmented Paging, all 16-node cells form a unified, flat, globally addressable ocean of memory (via the `BRG` tags). If Cell #42 fills up because a `while` loop generated 8 new nodes, the engine simply allocates free nodes in adjacent Cell #43 and inserts a `BRG` node. 
+*   **Why Paging Wins:** If Cell #42 fills up because a `while` loop generated 8 new nodes, the engine simply allocates free nodes in adjacent Cell #43 and inserts a `BRG` node. 
 *   **The GC Advantage:** A global Garbarge Collection (compaction) pass can seamlessly migrate active nodes across Cell boundaries to defragment memory without breaking the compiler's logical semantics. It is highly robust to unpredictable topological growth.
 
 #### How Hierarchical Chunking Generalizes (The Loser for General CS)
 Hierarchical Chunking (The Graph of Graphs) struggles immensely with chaotic, non-numeric workloads.
-*   **The Physics of Encapsulation:** In Chunking, a 16-node Micro ALU is a locked, isolated black box. The Macro Graph only sees the single `MACRO` node.
+*   **Cross-Graph Communication (Strictly Forbidden):** In Chunking, a 16-node Micro ALU is a locked, isolated black box. A node inside Micro ALU `A` *cannot* point to a node inside Micro ALU `B`. They are physically partitioned. All communication between them must be routed *up* to the Macro Graph, processed as generic 16-bit tokens, and sent back *down* into the Micro arrays. 
+*   **The Physics of Encapsulation:** Because cross-talk is forbidden, the Micro ALUs suffer zero network routing congestion, ensuring 100% deterministic FPU-like speed. But they are completely blind to the outside world.
 *   **The Overflow Catastrophe:** What happens if a sorting algorithm running *inside* a 16-node Micro ALU duplicates a node, requiring 17 slots? The Micro ALU physically overflows. It cannot simply "borrow" a slot from a neighbor because the architectures are hard-partitioned.
 *   **The Compiler Nightmare:** To run a general CS program on Hierarchical Chunking, the Compiler must guarantee, at compile time, that *no intermediate state of the computation inside a Micro Block will ever exceed 16 nodes*. For chaotic branching logic like a parser, this is computationally undecidable (the Halting Problem). The compiler would have to inject massive amounts of structural padding or force aggressive early-exits back to the Macro graph, entirely defeating the speed advantage.
 
