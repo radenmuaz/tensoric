@@ -1109,3 +1109,22 @@ Imagine a 1080p monitor. The OS Core maintains a massive, topologically static b
 #### The Verdict: Pure Functional Interactivity
 By viewing I/O and display buffers as persistent topological streams that external hardware blindly reads and writes to asynchronously, a pure Interaction Calculus machine can orchestrate an entire interactive Operating System. It completely eliminates CPU context-switching, interrupt request (IRQ) latency, and traditional graphics API overhead, mathematically evaluating a video game exactly the same way it evaluates a mathematical equation.
 
+### 13.4 Physical Integration: Legacy USB and HDMI via Dual-Port SRAM
+How do we practically physically wire a legacy USB mouse, a standard keyboard, and an HDMI monitor into this theoretical IC ASIC without abandoning standard peripherals?
+
+The solution relies on a well-established hardware paradigm: **Dual-Port SRAM and Direct Memory Access (DMA).**
+
+Instead of building proprietary IC-only keyboards, we use standard off-the-shelf USB and HDMI/VGA Controller chips. We bridge the gap between the legacy von Neumann controllers and the pure IC topology by utilizing SRAM banks that have two separate physical wiring ports (Port A and Port B), allowing two completely different hardware domains to read/write the same memory simultaneously without locking each other.
+
+#### 1. Input (Standard USB Controllers)
+*   **The Hardware:** A standard off-the-shelf USB Host Controller chip is physically wired to a USB port on the motherboard.
+*   **The Bridge (DMA to Dual-Port SRAM):** The USB Controller translates the electrical packet (e.g., "Left Click") into a tiny pre-compiled IC graph representing that event. Using DMA, the USB Controller writes this topological payload directly into **Port B** of the designated "Inbox" Dual-Port SRAM bank.
+*   **The IC Engine:** The core IC ALUs are wired exclusively to **Port A** of that same SRAM bank. They continuously evaluate the graph without knowing or caring that Port B exists. When the USB controller pushes the new graph into the Inbox, the IC Engine organically absorbs and reduces it on the next topological clock cycle.
+
+#### 2. Output (Legacy VGA / HDMI Displays)
+*   **The Hardware:** An off-the-shelf HDMI Display Controller natively designed to accept standard framebuffers.
+*   **The Bridge (DMA from Dual-Port SRAM):** The physical memory addresses containing the topographical "Display Tuple-Tree" are stored in a dedicated Dual-Port SRAM bank. The IC Engine continuously reduces and updates the color values of the tree via **Port A**.
+*   **The Sweep:** The HDMI controller is wired to **Port B**. Every 16.6 milliseconds (60Hz), the HDMI controller executes a hardcoded sequential memory sweep across Port B, scanning the integer addresses of the IC Tuple-Tree leaves. It translates those 8-bit or 16-bit IC numbers directly into standard RGB electrical signals and blasts them out the HDMI cable. 
+
+**Verdict:** The IC Engine remains mathematically pure. It never executes an "Output Instruction" or handles a "Hardware Interrupt." By leveraging Dual-Port SRAM, the IC ASIC can safely execute topology in an isolated sandbox, while standard legacy USB and HDMI chips act as physical vampires—asynchronously injecting and extracting state from the shared memory borders.
+
