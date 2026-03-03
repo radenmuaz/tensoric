@@ -1013,3 +1013,15 @@ PIM architectures physically embed tiny logic gates directly inside the SRAM/DRA
 Unlike fixed silicon chips, FPGAs allow routing wires to be synthesized arbitrarily. 
 *   **The Fit:** Instead of treating the IC graph as an array in a contiguous memory block, an FPGA could synthesize a massive physical Crossbar Switch. This would allow an active node at spatial position $0$ to physically interact with a node at spatial position $200$ in exactly $1$ clock cycle ($O(1)$) by blasting a signal across the crossbar matrix, overriding the need to serialize execution strictly through memory arrays.
 *   **Verdict:** Excellent for breaking the strict localization penalty of array-based routing, but FPGA crossbars scale poorly (taking exponential routing logic as node count increases) and are generally limited to smaller, high-speed physics controller subgraphs.
+
+### 12.15 Definitive Hardware Ranking for Pure IC Execution
+Based on the memory constraints, ISA analysis, and graph topological laws, here is the definitive ranking of hardware substrates for executing a pure Interaction Calculus engine:
+
+| Rank | Architecture | Tier | Pros | Cons | Verdict |
+| :-- | :-- | :--: | :-- | :-- | :-- |
+| **1** | **Processing-in-Memory (PIM)** | **S** | True theoretical manifestation of IC. Zero Von Neumann memory bottleneck. Active nodes evaluate instantly in-place via adjacent SRAM logic gates. | Does not commercially exist at necessary scales yet. Hard to implement global $O(\log N)$ GC. | **The Holy Grail.** Replaces spatial memory routing entirely with structural logic. |
+| **2** | **Custom "IC-Core" ASIC** | **S-** | Silicon strictly optimized for the 6-Instruction IC ISA (Zero MACs/FPUs). Dedicated GC prefix-sum hardware trees and topological flash-clearing. | Requires billions in custom fabrication. Not general-purpose for legacy code. | **The Ultimate Near-Term Goal.** The only way to surpass FPU speeds for pure math. |
+| **3** | **TPU Systolic Arrays** | **A** | Perfect match for `uint8` $[-8, +7]$ radius relative pointers. Immense contiguous SRAM. Vectorized JAX scans map flawlessly to MXU cascading steps. | Sequential systolic passing creates artificial latency for long var chains. Garbage Collection is bottlenecked without dirty hardware tricks. | **The Best Available Hardware today.** Scales from Edge devices to Datacenter pods seamlessly. |
+| **4** | **SIMT GPUs (CUDA)** | **B** | Exceptionally fast $O(\log N)$ parallel Garbage Collection using thread Warps. | Severe memory bandwidth saturation resolving chaotic topological pointer jumps (cache misses). | **Viable, but bottlenecked.** Requires Out-of-Band `float32` tensors for real work. |
+| **5** | **FPGA Crossbars** | **C** | $O(1)$ arbitrary spatial routing. Eliminates array-based index shifting. | Exponential logic scaling limits graph size. Cannot easily fit large LLM topologies. | **Niche/Experimental.** Best for tiny, ultra-high-frequency physics controllers, not massive arrays. |
+
