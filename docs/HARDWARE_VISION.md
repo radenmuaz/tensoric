@@ -666,14 +666,23 @@ Instead of representing 1 bit per node (using `BIT_0` and `BIT_1` tags), we can 
     *   **The "Sink" Node Tag:** We introduce a special `SINK` tag. A `SINK` node never interacts or routes data. It is a dead-end structural leaf. Because it never points anywhere, its 8-bit (or 5-bit depending on constraint) pointer field is completely ignored by the IC engine's routing logic. Therefore, we can safely overwrite the pointer field with raw numerical data!
 *   **Execution (Byte-Parallel Addition):** 
     *   The `ADD` operation no longer crawls through 32 nodes. It crawls through exactly 4 nodes. 
-    *   When the Adder subgraph faces a `SINK(Byte0_A)` and `SINK(Byte0_B)`, it reads the two 8-bit payloads from the pointer fields.
+    *   **IC Program (Add):** The compiler generates an `ADD_CHUNK` active node. When it hits the `SINK(Byte0_A)` and `SINK(Byte0_B)`, it reads the two 8-bit payloads from the pointer fields.
+    *   **The Look-Up Table (LUT) Evaluator:** Because an 8-bit + 8-bit addition only has 65,536 possible outcomes, the IC hardware doesn't need to do bit-serial boolean gates. It simply uses the two 8-bit values as an index into a hardwired physical LUT.
+    *   *Reduction Rule:* `[ADD_CHUNK](SINK(A), SINK(B))  =>  SINK( (A + B) & 0xFF )` alongside a `CARRY( (A + B) >> 8 )` node that moves to the next chunk.
+    *   **IC Program (Mul):** Multiplication is a sequence of additions and shifts. A `MUL_CHUNK` node triggers a localized shift-and-add loop. It reads the multiplier byte, and for every `1` bit, it duplicates (`DUP`) the multiplicand's tuple tree, shifts it, and feeds it into an `ADD_CHUNK` reduction tree.
+    *   **Verdict:** This reduces the spatial footprint from 32 nodes down to 4 nodes (an 8x memory compression) and reduces the addition latency from 32 interactions down to $\approx 4$ interactions.
     *   **The Look-Up Table (LUT) Evaluator:** Because an 8-bit + 8-bit addition only has 65,536 possible outcomes, the IC hardware doesn't need to do bit-serial boolean gates. It can simply use the two 8-bit values as an index into a hardwired physical LUT, instantly outputting the new 8-bit sum and the 1-bit carry in a single clock cycle.
     *   **Verdict:** This reduces the spatial footprint from 32 nodes down to 4 nodes (an 8x memory compression) and reduces the addition latency from 32 interactions down to 4 interactions.
 
 **B. Positional / One-Hot Tagging (The Spatial Integer)**
 If our node only has 4 bits for a Tag and 4 bits for a Pointer, we can use the graph distance itself as the number encoding.
 *   **The Structure:** To represent the number `$N$`, we insert exactly one `MARKER` node into a wire, spaced `$N$` nodes away from the start.
-*   **Why?** This is excellent for small counting loops or finite-state machines. Adding `$A + B$` is just concatenating the two wires end-to-end. 
+*   **Why?** This is excellent for small counting loops or finite-state machines. This format is topologically equivalent to Unary Church Numerals.
+*   **IC Program (Add):** Addition `$A + B$` is $O(1)$ constant time. You simply sever the `MARKER` of wire A, and literally plug wire B into its place. The combined distance is now `$A + B$`.
+    *   *Reduction Rule:* No complex active nodes needed. Just wire `A.out -> B.in`.
+*   **IC Program (Mul):** Multiplication `$A \times B$` is function composition. You wire the entire chain of `$A$` to replace *every single node* in the chain of `$B$`.
+    *   *Execution:* The `MUL` node triggers a massive sequential `DUP`licate pass. It duplicates chain $A$ exactly $B$ times.
+*   **Drawback:** To represent `1,000,000`, you need a wire that is `1,000,000` nodes long. It inflates memory wildly.
 *   **Drawback:** To represent `1,000,000`, you need a wire that is `1,000,000` nodes long. It is physically equivalent to Unary Church numerals.
 
 **C. The Base-16 Tuple Tree (Hexadecimal Encoding)**
@@ -683,10 +692,15 @@ If we have 16 available Tags (4-bit tag space), we can dedicate 16 tags to expli
     *   Depth 1: Left and Right sub-trees.
     *   Depth 2: 4 sub-trees.
     *   Depth 3: 8 Leaves. These leaves are the `HEX_X` nodes.
-*   **The Parallel Evaluator:** 
+*   **The Parallel Evaluator (IC Programs):** 
     *   Unlike the Bit-Serial zipper which takes 32 sequential steps, this balanced tree allows **$O(\log N)$ Parallel Addition**.
-    *   When an `ADD` node hits the roots of tree A and B, it `DUP`s itself down all branches simultaneously.
-    *   The 8 Hex leaves interact in parallel. The carries then fold back up the tree.
+    *   **IC Program (Add):** An `ADD_TREE` node is applied to the root.
+        1. It `DUP`licates itself down all binary branches simultaneously.
+        2. In $\log_2(8) = 3$ clock ticks, 8 `ADD_HEX` nodes hit the 8 pairs of `HEX_X` leaves simultaneously.
+        3. *Reduction Rule:* `[ADD_HEX](HEX(A), HEX(B)) => HEX( (A+B)%16 )` and emits a `CARRY` node that propagates upward.
+    *   **IC Program (Mul):** A `MUL_TREE` acts as a spatial scatter-gather. 
+        1. `MUL_TREE` duplicates the entire multiplicand tree 8 times, shifting its significance linearly based on the tree branch index.
+        2. It spawns an $O(\log N)$ binary reduction tree of `ADD_TREE` nodes to concurrently sum all 8 shifted partial products.
     *   **Verdict:** This scheme drastically increases evaluation throughput by converting temporal sequence (Bit-Serial) into spatial concurrency (Tree Parallelism), completing a 32-bit addition in $\approx 3$ topological depth steps rather than 32 sequential steps.
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
