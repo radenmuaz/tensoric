@@ -728,6 +728,27 @@ If we have 16 available Tags (4-bit tag space), we can dedicate 16 tags to expli
         *   *Tick 4 (Normalization):* The mantissa conceptually evaluates to $1.25 \times 2^{1}$, requiring an exponent increment. The subgraph adjusts the top exponential hex digits.
         *   *Result:* `TREE( HEX(4), HEX(0), HEX(A), HEX(0), HEX(0), HEX(0), HEX(0), HEX(0) )`, which is `0x40A00000` (the exact IEEE pattern for `5.0`).
     *   **Verdict:** This scheme drastically increases evaluation throughput by converting temporal sequence (Bit-Serial) into spatial concurrency (Tree Parallelism), completing a 32-bit addition in $\approx 3$ topological depth steps rather than 32 sequential steps.
+
+**D. Unary Byte-Chunks (The Abacus Scheme)**
+What if we take the spatial `Positional Tagging` concept (B) but partition it to represent a 32-bit float without inflating into a single billion-node wire?
+Instead of a Tree (C) or a Bit-Serial list, we represent a 32-bit float as exactly **4 distinct Unary Wires** (representing Byte 3, Byte 2, Byte 1, Byte 0), bundled together by a single `TUPLE_4` node.
+*   **The Structure:** The value of a specific Byte (0 to 255) is encoded purely by the *Distance* (number of `WIRE` nodes) before hitting a `MARKER` node. 
+    *   A Byte value of `0` is just `MARKER`.
+    *   A Byte value of `255` is a chain of 255 `WIRE` nodes ending in a `MARKER`.
+*   **Graph Footprint:** A single FP32 number fluctuates dynamically in size between **5 nodes** (if all bytes are 0) up to **1025 nodes** (if all 4 bytes are 255).
+*   **IC Program (Add):** 
+    *   Addition is performed Byte-Parallel. An `ADD_TUPLE` node splits into 4 independent `ADD_UNARY` evaluators.
+    *   Each `ADD_UNARY` structurally unplugs the `MARKER` of Wire A and wires Wire B onto the end, exactly like Positional Tagging.
+    *   *The Overflow Hardware Trick:* The engine monitors distance. If a wire exceeds 255 nodes in length, an active `OVERFLOW` node severes the chain at node 256, wraps the remainder back to 0, and shoots a `CARRY` signal to the next wire up the tuple.
+*   **Numerical Trace Example (Adding 1500 + 400):**
+    *   `1500` structurally: `TUPLE_4( Dist=0, Dist=0, Dist=5, Dist=220 )`
+    *   `400` structurally: `TUPLE_4( Dist=0, Dist=0, Dist=1, Dist=144 )`
+    *   *Tick 1:* The `ADD_TUPLE` splits. The lowest wire literally plugs `Dist=144` into `Dist=220`. 
+    *   *Tick 2:* Physical distance is now `364` nodes.
+    *   *Tick 3 (Carry Eval):* The IC hardware recognizes `364 > 255`. It cuts the chain at `255`, leaving `364 - 256 = 108` distance for Byte 0, and sends $+1$ to Byte 1.
+    *   *Tick 4:* Byte 1 evaluates `Dist=5` plugged into `Dist=1` plugged into `Dist=1 (Carry)` = `Dist=7`.
+    *   *Result:* `TUPLE_4( Dist=0, Dist=0, Dist=7, Dist=108 )` which gives $7 \times 256 + 108 = 1900$.
+*   **Verdict:** This "structural abacus" combines the magical $O(1)$ constant-time topological addition of Unary numbers with the exponential density of Base-256 byte chunking. The hardware only needs to measure distances up to 255, completely avoiding multi-million node memory bloat.
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
 **For a software JAX engine:** The 16-bit format (`uint16`: 8-bit tag, 8-bit pointer) is the golden ratio of compression versus routing speed. The $-128$ to $+127$ radius is wide enough to avoid excessive wiring, while fully capitalizing on the topographical locality of Interaction Calculus.
