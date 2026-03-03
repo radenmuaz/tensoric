@@ -1159,15 +1159,15 @@ Instead, the contiguous physical SRAM array acts as one massive, globally shared
 ### 13.6 Synchronizing Async: Maintaining 60FPS Framing
 If the IC Engine is a continuously evaluating, asynchronous topological graph lacking a centralized CPU clock-stepper, how do you prevent a video game from running at 10,000 FPS and exhausting the physics engine? How do you maintain a consistent, stable 60Hz frame rate?
 
-To enforce temporal synchronization in a purely asynchronous math space, we introduce a **Topological Clock Stream**.
+To enforce temporal synchronization in a purely asynchronous math space without inventing custom node types, we introduce a **Topological Clock Stream** relying strictly on the default Interaction Calculus ruleset.
 
-1.  **The Hardware Metronome:** A dedicated quartz hardware timer on the motherboard is configured to oscillate exactly every $16.6 \text{ms}$ (60Hz). Every oscillation, it uses DMA to inject a single `TICK` node into the Dual-Port SRAM Inbox.
-2.  **Structural Waiting:** The root recursive function of the video game program is structurally designed so that the permutation of Frame $N+1$ *mathematically requires* interaction with a `TICK` node.
-3.  **The Asynchronous Stall:** On a given frame, the IC Matrix is so fast that it finishes computing the massive Tuple-Tree display physics in $1\text{ms}$. The game subgraph then structurally hits a wall: the root node is waiting for the next `TICK`.
-4.  **Idle Parallelism:** For the next $15 \text{ms}$, the IC Cores simply ignore the Game Subgraph (as there are no active pairs to reduce). Instead, the array uses those billions of spare evaluation cycles to instantly process background OS tasks, Garbage Collection, or network streams.
-5.  **The Advance:** Exactly $15.6\text{ms}$ later, the quartz timer injects the `TICK` node. The game subgraph organically pairs with it, instantly unblocking the topology and spawning the mathematical topology for the next frame.
+1.  **The Hardware Metronome:** A dedicated quartz hardware timer on the motherboard oscillates exactly every $16.6 \text{ms}$ (60Hz). Every oscillation, it uses DMA to inject a standard IC Constructor Tuple—e.g., `CON(ERA, ERA)` (a pair of Eraser/Void nodes)—into the Dual-Port SRAM Inbox.
+2.  **Structural Waiting:** The root recursive function of the video game program is structurally designed so that the permutation of Frame $N+1$ *mathematically requires* interaction with a generic Tuple `CON` node. 
+3.  **The Asynchronous Stall:** On a given frame, the IC Matrix evaluates so fast that it finishes computing the massive Tuple-Tree display physics in $1\text{ms}$. The game subgraph then attempts to spawn Frame $N+1$, but hits a physical wall: the reduction port is explicitly wired to the Inbox stream, waiting for a Constructor payload. Because the peer node hasn't been injected yet, the interaction rules physically cannot proceed.
+4.  **Idle Parallelism:** For the next $15 \text{ms}$, the IC Cores simply ignore the blocked Game Subgraph (as there are no active pairs to reduce). Instead, the array uses those billions of spare evaluation cycles to instantly process background OS tasks, Garbage Collection, or network streams.
+5.  **The Advance:** Exactly $15.6\text{ms}$ later, the quartz timer injects the `CON(ERA, ERA)` tuple. The game subgraph's waiting port organically pairs with it. The standard 17-Rule Truth Table resolves the `CON-CON` or `CON-DUP` interaction, instantly unblocking the topology and spawning the mathematical topology for the next frame.
 
-By using physical hardware timers to inject topological blockade-breakers (`TICK` nodes) directly into the Inbox stream, we mathematically force a wildly asynchronous, billion-cycle-per-second computational fabric to march to a perfectly synchronized, deterministic 60FPS beat.
+By using physical hardware timers to inject standard IC Tuple payloads directly into the Inbox stream, we mathematically force a wildly asynchronous computational fabric to halt its reduction and march to a perfectly synchronized, deterministic 60FPS beat.
 
 ### 13.7 Software Emulation: Building the OS in JAX
 Before fabricating an ASIC, we can practically emulate this entire pure-functional architecture today in `tensoric` utilizing JAX and a standard Python GUI library like `pygame` or `glfw`.
@@ -1190,4 +1190,29 @@ In `tensoric`, the Python thread acts as the HDMI controller.
 *   **The Render:** Python takes that raw integer array and bulk-writes it into a `pygame.Surface` pixel buffer, displaying the topologically-rendered frame.
 
 By maintaining strict separation between the Python Host (acting as legacy IO/HDMI peripherals) and the compiled JAX Device (acting as the pure isolated IC-Core ASIC), we can perfectly simulate a structurally-enforced Interaction Calculus Operating System on consumer hardware today.
+
+### 13.8 Overcoming the JAX `lax.scan` Black Box: Asynchronous Dispatch Queues
+A critical emulation roadblock arises when dealing with `jax.lax.scan`. XLA compiles the loop into a massive monolithic GPU kernel. If we run a generic scan for $100,000$ steps (which runs much faster than real-time), it acts as a black box: we cannot extract the display buffer or inject a new mouse position *in the middle* of the scan. We only get the result at the end. 
+
+If we pause the entire GPU every few steps to synchronize I/O, the CPU-to-GPU overhead will destroy the 60FPS framerate. How do we buffer the I/O seamlessly?
+
+The solution directly mimics a modern 3D graphics pipeline, combining **Frame-Sized XLA Blocks** with **JAX Asynchronous Dispatch Futures**.
+
+#### 1. Frame-Sized XLA Blocks
+Instead of launching a blind $100,000$ step scan, we configure the `jax.jit` compiled IC evaluation function to execute *exactly* the topological distance required to fulfill one single 60Hz frame (the topological distance to reach the next hardware `TICK`). 
+`next_state, display_buffer = jitted_ic_frame(current_state, inbox_events)`
+
+#### 2. JAX Asynchronous Dispatch (Futures)
+When Python executes a JIT-compiled function, JAX does **not** block the Python thread waiting for the GPU to finish. JAX instantly pushes the execution to the GPU queue and returns a "Future" (an unresolved `DeviceArray` pointer).
+
+#### 3. The Triple-Buffered Pipelined Experience
+This allows us to pipeline the OS flawlessly:
+1.  Python captures the Mouse/Keyboard state and dispatches **Frame 1** to JAX. It instantly gets Future 1.
+2.  Python immediately dispatches **Frame 2** with the same inputs to keep the GPU busy.
+3.  The GPU is screaming through the math of Frame 1 much faster than real-time. Meanwhile, Python sits at VSYNC, waiting for the physical monitor to refresh.
+4.  At $16.6\text{ms}$, Python demands the pixel data of Future 1, forcing a synchronized read. It blasts Frame 1 to the PyGame window.
+5.  Python instantly captures the *new* physical mouse position, packages it into the Inbox array, and dispatches **Frame 3** to the back of the JAX execution queue.
+
+**The Seamless Result:** Because the GPU naturally processes the topologies faster than the $16.6\text{ms}$ limit, the compiled XLA block completes the math *before* Python asks for it. 
+The input from the mouse is injected 1 to 2 frames ahead of the actual render. This introduces a $16-33\text{ms}$ input lag, which is mathematically and physically identical to standard **Triple-Buffering VSYNC** in modern AAA game engines. The user experiences perfectly fluid 60FPS interactive gameplay, and the JAX/XLA GPU compiler is never interrupted mid-kernel.
 
