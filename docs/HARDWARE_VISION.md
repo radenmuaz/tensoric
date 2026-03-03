@@ -556,6 +556,56 @@ In Paging, there are no "Interfaces" or "Kernels". The graph is just a massive c
 *   **Chunking:** Program custom "IC Micro-Kernels" and wire them together using the Macro Graph.
 *   **Paging:** Write standard global IC code, and let the hardware auto-paginate the memory natively.
 
+### 12.4 Concrete Example: Structuring and Reducing FP32 in 8-bit IC
+How exactly is a 32-bit float represented when your nodes are only 8 bits (4-bit tag, 4-bit pointer)? You cannot fit $3.14159$ inside an 8-bit node.
+
+If we look at the **Native Node Embedding** approach (Section 1) adapted for 8-bit constraints, the solution is the **Out-Of-Band (OOB) Float Array**.
+
+#### The Dual-Array Architecture
+The JAX engine (or hardware ASIC) maintains two strictly parallel arrays:
+1.  **The Graph Array (`uint8`):** Holds the IC graph topology (Tags and structural pointers).
+2.  **The Float Array (`float32`):** Holds the actual FP32 payloads.
+
+*Crucially, the structural index in the Graph Array maps 1:1 to the data index in the Float Array.*
+
+#### 1. Representing a Float
+When an IC program needs to represent the number `42.0`, it constructs a specific `FLT` node in the Graph Array. 
+*   **Graph at Index `X`:** The 8-bit node is entirely dedicated to routing. `Tag = FLT`, `Ptr = (Parent Index)`
+*   **Float at Index `X`:** The `float32` array at exactly the same index `X` holds the value `42.0`.
+The `FLT` node in the graph acts as an active **token** moving through the IC program. When it arrives at an ALU operation, the engine simply reads the corresponding payload from the OOB float array.
+
+#### 2. Structuring an ADD_F Operation
+An Addition operation requires three nodes interacting: two input `FLT` nodes, and one `ADD_F` operation node.
+Because a standard binary IC node (like `ADD_F`) only has *two* structural ports, it cannot natively connect to three things (Parent, Left Input, Right Input) simultaneously in a single node. 
+*   **The Structure:** Arithmetic operations are represented as a curried nested pair of nodes.
+    *   Node 1 (`ADD_1`): Takes the first float and returns an active `ADD_2` operator.
+    *   Node 2 (`ADD_2`): Holds the first float, takes the second float, and returns the result.
+
+#### 3. The Concrete Reduction Trace (The FPU Tick)
+Let's trace the evaluation of `42.0 + 10.0`.
+
+**Initial State:** The graph connects an `ADD_1` request to the first float.
+*   `Index 100`: `FLT` node (Points to `101`). OOB Float = `42.0`.
+*   `Index 101`: `ADD_1` node (Points to `100`). Its secondary port points to the rest of the AST (e.g., Index `102` which connects to the second float `10.0`).
+
+**Tick 1: The Partial Application (`ADD_1` meets `FLT`)**
+When `FLT` and `ADD_1` face each other structurally:
+1.  **Pattern Match:** The reduction engine sees the active pair `(ADD_1, FLT)`. 
+2.  **The Rewrite:** The engine replaces the `ADD_1` node with an `ADD_2` node.
+3.  **Data Transfer:** The `ADD_2` node needs to remember the first float. Because `ADD_2` is an 8-bit node, it cannot store the float inside itself. Instead, the engine writes the payload `42.0` into the `ADD_2` node's OOB float array index.
+*   **New State:** A new `ADD_2` node is cruising through the graph, structurally carrying the number `42.0` inside its shadow OOB array.
+
+**Tick 2: The Final Computation (`ADD_2` meets `FLT`)**
+The `ADD_2` node eventually routes itself to face the second float.
+*   `Index 150`: `ADD_2` node (OOB Float = `42.0`). Points to `151`.
+*   `Index 151`: `FLT` node (OOB Float = `10.0`). Points to `150`.
+1.  **Pattern Match:** The engine sees the active pair `(ADD_2, FLT)`.
+2.  **The ALU Trigger:** The engine detects a completed math operation. It reads `FloatArray[150]` (`42.0`) and `FloatArray[151]` (`10.0`). It passes them into the physical silicon FP32 ALU (or `jax.lax.add`).
+3.  **The Result Payload:** The ALU outputs `52.0`.
+4.  **The Rewrite:** The engine overwrites both interacting nodes. It creates a new `FLT` node hooked up to the Parent port, and writes the resulting payload `52.0` into its OOB array.
+
+This is how an 8-bit topology dynamically schedules, routes, and triggers 32-bit FPU math in a purely structural runtime. The `uint8` nodes act entirely as the Control Plane, while the `float32` array acts entirely as the Data Plane.
+
 ### Verdict on the Extreme 1-Byte Node
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
