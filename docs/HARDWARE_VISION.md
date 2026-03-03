@@ -320,11 +320,68 @@ What if the IC engine needs to connect a node at Index `0` to a node at Index `4
 1. **The $O(N)$ Chain (The Extension Cord):**
    We can simply insert a chain of `VAR` (variable/indirection) nodes. A `VAR` acts as a bare wire. To travel 4,096 indices, the compiler inserts $4096 / 127 \approx 32$ `VAR` nodes connected in series. 
    *    *Drawback:* Every time a substitution travels across this wire, it takes 32 clock cycles (interactions) to traverse it. For a dense neural network, this latency adds up unacceptably.
+
+    *JAX Emulation Snippet:*
+```python
+import jax.numpy as jnp
+from jax import lax
+
+def resolve_var_chain(heap, start_index):
+    # A JAX while_loop that traverses the VAR chain sequentially.
+    # This clearly demonstrates the O(N) latency penalty.
+    def cond_fun(state):
+        current_idx, is_var = state
+        return is_var
+        
+    def body_fun(state):
+        current_idx, _ = state
+        # Assume VAR tag is 0. Read the 8-bit signed offset.
+        offset = jnp.int8(heap[current_idx] & 0xFF)
+        next_idx = current_idx + offset
+        
+        # Check if the next node is also a VAR
+        next_tag = (heap[next_idx] >> 10) & 0x1F
+        is_next_var = (next_tag == 0)
+        
+        return (next_idx, is_next_var)
+        
+    # Start the O(N) traversal
+    final_idx, _ = lax.while_loop(
+        cond_fun, 
+        body_fun, 
+        (start_index, True)
+    )
+    return final_idx
+```
+
 2. **The $O(1)$ Compound Jump Node (`JMP`):**
    Instead of a chain of tiny wires, we introduce a dedicated `JMP` (Jump) IC Node. Because a standard Binary IC node has two child ports (e.g., `APP(left, right)`), the `JMP` node co-opts *both* ports to form a single massive relative pointer.
    *    *Mechanism:* A `JMP` node treats its `port_1` and `port_2` payloads not as two distinct 8-bit pointers, but as a single **16-bit signed integer** ($-32,768$ to $+32,767$). 
    *    *Evaluation:* When a signal hits a `JMP` node, the crossbar inherently extracts the 16-bit payload and fires the signal exactly to `Current_Index + 4096` in a single tick.
    *    *Verdict:* The `JMP` node perfectly solves the boundary issue. 99% of your nodes use standard 8-bit relative pointers ensuring maximum memory density, while the compiler strategically drops a `JMP` node anytime it needs to route an $O(1)$ long-distance highway across the physical die!
+
+When the `JMP` node is processed, the hardware crossbar reads the 16 bits *simultaneously* and mathematically adds them to the current index. It takes exactly 1 clock cycle to resolve a distance of $\pm 32,767$.
+
+    *JAX Emulation Snippet:*
+```python
+def resolve_jmp_compound(heap, jmp_index_1, jmp_index_2):
+    # The JMP node occupies two adjacent 16-bit slots to form a 16-bit offset.
+    # Note: No while_loop! This is O(1) vectorizable logic.
+    
+    # Read the Low 8-bit offset from the first node
+    low_byte = heap[jmp_index_1] & 0xFF
+    
+    # Read the High 8-bit offset from the second node
+    high_byte = heap[jmp_index_2] & 0xFF
+    
+    # Pack them into a 16-bit signed integer
+    # (Shift high byte up 8 bits, bitwise OR with low byte)
+    compound_offset = jnp.int16((high_byte << 8) | low_byte)
+    
+    # Resolve the final absolute target in O(1) time
+    absolute_target = jmp_index_1 + compound_offset
+    return absolute_target
+```
 
 ### B. Segmented Paging (Bank Switching)
 Mimicking the memory controllers of 8-bit retro consoles (like the NES), we can divide the massive array into 256-node "Pages" or "Banks".
