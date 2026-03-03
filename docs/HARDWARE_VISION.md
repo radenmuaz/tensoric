@@ -824,20 +824,22 @@ In deep learning (Neural Networks), multiplication is extremely common, while ex
 *   **IC Program (Add):** Standard addition is notoriously difficult in LNS, evaluated by $A + B = A + f(B - A)$. This requires evaluating a structural Look-Up Table (LUT) for $f(x)$.
 *   **Verdict:** For IC hardware running AI inference, representing weights as Unary LNS values means trillions of Matrix Multiplications physically evaluate by just snapping structural wires together in $1$ clock cycle ($O(1)$ time).
 
-#### 4. Structural Interval Arithmetic (Uncertainty Trees)
-Instead of simulating a PDE with exact scalars (which accumulate chaotic butterfly-effect errors over time), we compute the upper and lower bounds of reality simultaneously.
-*   **The Structure:** A number is strictly a bound: `INTERVAL(MinState, MaxState)`.
-*   **IC Program (Execution):** 
-    *   Every time an `ADD` node hits the bound, it `DUP`licates perfectly into two parallel streams. 
-    *   `ADD_INTERVAL` computes `INTERVAL(Min_A + Min_B, Max_A + Max_B)`. 
-    *   Because Interaction Calculus evaluates independent graph branches asynchronously and concurrently without a central clock, the hardware computes both bounds of the universe simultaneously with $0$ context-switching overhead.
-
 #### 5. Prime Factorization Multisets (The Cryptographic Core)
 If we are doing massive Number Theory, Cryptography (RSA), or combinatorial topologies, representing numbers as Base-2 arrays is painfully slow for Division.
 *   **The Structure:** A number is an unordered multiset (a scattered Tree) of its prime factors. `12` is represented as `TREE(2, TREE(2, 3))`. 
 *   **IC Program (Mul):** $A \times B$ is purely $O(1)$ graph connection. You just wire the root of $A$'s tree to substitute a leaf of $B$'s tree. Multiplication is instantly combining subsets. No ALUs required.
 *   **IC Program (Div):** $A / B$ is an $O(N)$ active `ERA` wave that cascades through the tree annihilating matching prime nodes.
 *   **Verdict:** Unusable for physics/PDEs (Addition is practically mathematically impossible without completely re-evaluating the subgraphs), but structurally optimal for algebraic geometry and quantum simulation circuits.
+
+#### 12.6.6 Native IC Format Complexity Comparison
+
+| Native IC Format | Space Footprint | ADD Latency | MUL Latency | Primary Target Domain |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Rational Tuple** | $\approx 2 \times$ Hex Abacus | $O(V_{nibble}^2)$ | $O(\text{Hex\_Mul})$ perfectly parallel | Exact Physics / Symbolic Math |
+| **2. Dynamic Fixed-Point** | $O(\log N)$ bits dynamically | $O(\text{Depth})$ | $O(\text{Depth}^2)$ | High-Fidelity PDEs (No Float Error) |
+| **3. Logarithmic (LNS)** | $O(1)$ Unary Wire | $O(\text{LUT\_Delay})$ | $\mathbf{O(1)}$ Topological Plug | Deep Learning / Neuromorphic |
+| **4. Interval Bound** | $2 \times$ Base Format | $O(\text{Base\_ADD})$ | $O(\text{Base\_MUL})$ | Quantum / Chaos Simulation |
+| **5. Prime Multiset** | $O(\text{Prime Factors})$ Nodes | Mathematically Intractable | $\mathbf{O(1)}$ Topological Plug | Cryptography / Number Theory |
 
 ### 12.7 Final Verdict: The Hardware Limits
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
