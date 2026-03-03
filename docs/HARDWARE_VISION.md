@@ -919,3 +919,22 @@ How feasible is this architecture in practice?
 *   **The Gradient Constraint:** Training Neural Networks involves dynamically computing massive gradient graphs via Backpropagation, spawning immense amounts of temporary state matrices before applying optimizer updates.
 *   **Feasibility:** **Currently Moderate / Heavily Bottlenecked.** While Inference uses a mostly static graph topology, Training is highly dynamic. The strict immutability of Interaction Calculus means that every single backprop step structurally clones and instantiates trillions of temporary IC nodes representing the gradient derivations. 
 *   **The GC wall:** The underlying Garbage Collector would become the absolute primary bottleneck of the datacenter. Unless the hardware possesses natively parallel, zero-cost Topological Annihilation lines (where complementary graphs instantly annihilate into free space without a mark-and-sweep penalty), training massive LLMs natively in pure IC graphs will saturate even HBM interconnects due to the ferocious rate of node allocation and deallocation.
+
+### 12.10 The Physics of Garbage Collection: Landauer's Principle in IC
+Can "zero-cost" Topological Annihilation lines be implemented purely within Interaction Calculus? 
+
+**Mathematically: No.** 
+In strict, pure Interaction Calculus, deleting a number or a data structure is not a zero-cost operation; it is an active thermodynamic process. 
+
+To delete a spatial subgraph of size $N$, an active `ERA` (Eraser) node must be plugged into its root root. The `ERA` node then physically propagates through the topology. When it hits a binary `TREE` node, the interaction rule dictates:
+`ERA ⋈ TREE(A, B)  ⟶  ERA(A) + ERA(B)`
+The Eraser duplicates itself and travels down both branches, annihilating nodes one by one until it hits the terminal leaves (`ERA ⋈ LEAF ⟶ Void`). 
+
+Because the erasure wave propagates at the "speed of light" of the graph (1 node per IC clock tick), fully destroying a graph of size $N$ takes exactly **$O(\text{Depth})$ ticks and $O(N)$ total active interactions**. 
+
+#### The Thermodynamic Connection
+This $O(N)$ active cost flawlessly mirrors **Landauer's Principle** in physics, which states that the erasure of information is intrinsically dissipative and requires a minimal expenditure of energy. Pure Interaction Calculus forces you to pay this thermodynamic cost in computational clock cycles! The IC evaluator must spend valid compute ticks executing the `ERA` annihilation rules, mathematically generating topological "heat" (execution latency) just to free up spatial memory.
+
+#### The "Dirty" Hardware Solution
+If you want true *zero-cost* annihilation for an LLM training cluster, you cannot do it using pure IC topology. You must use a "dirty" hardware trick outside the calculus. 
+For example, on a custom TPU SRAM grid, if an entire 256-node standard page becomes garbage (e.g., a dropped gradient matrix), a dedicated hardware "Flash Clear" voltage rail zaps the entire SRAM bank to $0$ in a single physical clock cycle. This gives you $O(1)$ zero-cost erasure, but it relies on physical silicon hardware limits, entirely breaking the pure topological mathematics of the IC graph paradigm.
