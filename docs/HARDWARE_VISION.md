@@ -479,6 +479,26 @@ def evaluate_hierarchy(macro_heap, micro_alus):
     # new_micro_heaps = jax.vmap(eval_micro_16)(active_micro_heaps)
 ```
 
+### 12.1 Ranking for JAX FPU Competition (4-bit limits)
+If the strict constraints are: (1) Use 4-bit Tag + 4-bit Pointers, (2) Must be compiled in JAX (`jax.jit`), (3) Must maintain Static Shapes (`jax.lax.scan`/`vmap`), and (4) The ultimate goal is to **compete with a standard FP32 FPU** in throughput—here is how the four architectures rank in practicality:
+
+#### Rank 1: Hierarchical Chunking (The Graph of Graphs)
+*   **Jittable & Static Shape:** **Perfect.** We use a fixed-size array for the Macro graph and a static `(M, 16)` array for the Micro ALUs. Using `jax.vmap` over the active MACRO node indices is natively supported by XLA.
+*   **FPU Competitiveness:** **Highest.** This is the only architecture that explicitly mimics the Tensor Core. By encapsulating 16-node 4-bit graphs into explicit "ALU Primitives", you guarantee that dense mathematical operations never suffer from routing chaos. The Macro graph feeds them; the Micro ALUs crunch them symmetrically.
+*   **Verdict:** The most viable path to beating an FP32 FPU using strictly 8-bit total bytes.
+
+#### Rank 2: Segmented Paging (Bank Switching / 16-node Cells)
+*   **Jittable & Static Shape:** **Excellent.** We use a static `(Cells, 16)` array. The pointer resolution uses a clean `jnp.where` boolean mask to choose between identical internal reads or external cross-cell reads.
+*   **FPU Competitiveness:** **High, but with overhead.** Because any node *can* theoretically jump to any page using a `BRG` (Bridge) tag, the JAX execution must always calculate the external bridge address globally just in case. This wastes vector SIMD lanes on threads that don't need to Bridge, slightly lowering raw arithmetic throughput compared to Chunking.
+
+#### Rank 3: The $O(1)$ Compound Jump Node (`JMP`)
+*   **Jittable & Static Shape:** **Moderate.** A static flat `(N,)` array is used. `jnp.where` can be used to resolve jump boundaries.
+*   **FPU Competitiveness:** **Poor.** The problem is memory shape semantics. A `JMP` node intrinsically requires consuming *two* physical 8-bit array slots (`Index N` and `Index N+1`) to form a 16-bit offset. In a `jax.lax.scan` loop, checking `if previous_node_was_jmp` to avoid executing the second half of the pointer as an instruction breaks the semantic purity of the vectorization. It forces complex control-flow padding. 
+
+#### Rank 4: The $O(N)$ Chain (The Extension Cord / VAR chains)
+*   **Jittable & Static Shape:** **Fail.** While it can technically be compiled using `jax.lax.while_loop()`, the loop explicitly halts the parallel vectorized pipeline.
+*   **FPU Competitiveness:** **Zero.** If you have an $O(N)$ sequential data dependency loop inside your vector kernel just to route a signal to an ALU, you lose all hardware accelerator advantages. You cannot compete with an FP32 FPU if your "wires" take proportional sequential clock cycles to read.
+
 ### Verdict on the Extreme 1-Byte Node
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
