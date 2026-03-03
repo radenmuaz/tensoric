@@ -690,11 +690,14 @@ If our node only has 4 bits for a Tag and 4 bits for a Pointer, we can use the g
     *   *Reduction Rule:* No complex active nodes needed. Just wire `A.out -> B.in`.
 *   **IC Program (Mul):** Multiplication `$A \times B$` is function composition. You wire the entire chain of `$A$` to replace *every single node* in the chain of `$B$`.
     *   *Execution:* The `MUL` node triggers a massive sequential `DUP`licate pass. It duplicates chain $A$ exactly $B$ times.
-    *   **Numerical Trace Example (Adding 3 + 2):**
-        *   `A (3)`: `Wire_In -> Wire -> Wire -> MARKER`
-        *   `B (2)`: `Wire_In -> Wire -> MARKER`
-        *   *Tick 1:* The `ADD` topological rewrite directly plugs `A.out` into `B.in`.
-        *   *Result:* `Wire_In -> Wire -> Wire -> Wire -> Wire -> MARKER` (Distance = 5). $O(1)$ time latency.
+    *   **Numerical Trace Example (Adding 2.0 + 3.0 via IEEE 754):**
+        *   Because Positional wires represent absolute magnitude (distance = value), wrapping an IEEE 754 float requires a Tuple of three separate wires `(SignWire, ExpWire, MantissaWire)` where the physical lengths of the wires equal the integer bit-values.
+        *   `A (2.0)`: `Tuple( Dist=0, Dist=128, Dist=0 )`
+        *   `B (3.0)`: `Tuple( Dist=0, Dist=128, Dist=4194304 )` (Mantissa distance is purely the fractional part).
+        *   *Tick 1 (Exponent Alignment):* The `ADD_FLOAT` subgraph races two signals simultaneously down `A.Exp` and `B.Exp`. They hit the `MARKER` at the exact same tick (both length 128), meaning exponents are equal. No mantissa shifting required.
+        *   *Tick 2 (Mantissa ADD):* The graph physically routes the `MARKER` of `A.Mantissa` to plug into the start of `B.Mantissa` (adding the implicit fractional bits). 
+        *   *Result:* The new wire length is the combined mantissa distance, repackaged into a new Tuple. 
+        *   *(Note: While mathematically possible, implementing IEEE mantissa alignment logic using racing signals on physical wire lengths is structurally psychotic and absurdly inefficient compared to a LUT.)*
 *   **Drawback:** To represent `1,000,000`, you need a wire that is `1,000,000` nodes long. It inflates memory wildly.
 *   **Drawback:** To represent `1,000,000`, you need a wire that is `1,000,000` nodes long. It is physically equivalent to Unary Church numerals.
 
@@ -714,14 +717,15 @@ If we have 16 available Tags (4-bit tag space), we can dedicate 16 tags to expli
     *   **IC Program (Mul):** A `MUL_TREE` acts as a spatial scatter-gather. 
         1. `MUL_TREE` duplicates the entire multiplicand tree 8 times, shifting its significance linearly based on the tree branch index.
         2. It spawns an $O(\log N)$ binary reduction tree of `ADD_TREE` nodes to concurrently sum all 8 shifted partial products.
-    *   **Numerical Trace Example (Adding 0x1A + 0x27):**
-        *   `A (0x1A)`: `TREE( HEX(1), HEX(10) )`
-        *   `B (0x27)`: `TREE( HEX(2), HEX(7) )`
-        *   *Tick 1:* `ADD_TREE` hits roots and `DUP`s itself down both left and right sibling branches concurrently.
-        *   *Tick 2:* Right leaf `ADD_HEX` hits `HEX(10)` and `HEX(7)`. Left leaf `ADD_HEX` hits `HEX(1)` and `HEX(2)`.
-        *   *Tick 3 (Concurrent eval):* Right side evaluates `10 + 7 = 17`. It outputs `HEX(1)` with a `CARRY(1)`. Left side evaluates `1 + 2 = 3` and waits for carry.
-        *   *Tick 4:* Carry propagates to Left leaf. `3 + 1 = 4`.
-        *   *Result:* `TREE( HEX(4), HEX(1) )` = `0x41` (which is decimal 65).
+    *   **Numerical Trace Example (Adding 2.0 + 3.0 via IEEE 754):**
+        *   An IEEE float is 32 bits, which is exactly 8 Hexadecimal digits. Structurally, it perfectly maps to a balanced depth-3 tree.
+        *   `A (2.0)` in IEEE is `0x40000000`: `TREE( HEX(4), HEX(0), HEX(0), HEX(0), HEX(0), HEX(0), HEX(0), HEX(0) )`
+        *   `B (3.0)` in IEEE is `0x40400000`: `TREE( HEX(4), HEX(0), HEX(4), HEX(0), HEX(0), HEX(0), HEX(0), HEX(0) )`
+        *   *Tick 1 (Exponent Align):* The `ADD_FLOAT` subgraph hits the root and immediately evaluates the two highest hex digits (the Exponents) to align them. Both start with `0x40...`.
+        *   *Tick 2 (Parallel Zip):* It `DUP`licates down all 8 branches concurrently to add the mantissas.
+        *   *Tick 3 (Concurrent Eval):* The 8 `ADD_HEX` nodes hit the 8 leaf pairs simultaneously. `HEX(0) + HEX(4) = HEX(4)` (at the highest mantissa digit). `HEX(0) + HEX(0) = HEX(0)` elsewhere.
+        *   *Tick 4 (Normalization):* The mantissa conceptually evaluates to $1.25 \times 2^{1}$, requiring an exponent increment. The subgraph adjusts the top exponential hex digits.
+        *   *Result:* `TREE( HEX(4), HEX(0), HEX(A), HEX(0), HEX(0), HEX(0), HEX(0), HEX(0) )`, which is `0x40A00000` (the exact IEEE pattern for `5.0`).
     *   **Verdict:** This scheme drastically increases evaluation throughput by converting temporal sequence (Bit-Serial) into spatial concurrency (Tree Parallelism), completing a 32-bit addition in $\approx 3$ topological depth steps rather than 32 sequential steps.
 A 1-Byte Node (4-bit tag, 4-bit pointer) is the absolute theoretical limit of spatial compression for IC. It creates the densest parallel compute fabric conceivable (approaching molecular scales of logic). However, it fundamentally shifts the computational bottleneck away from *Memory Storage* and directly onto *Routing Congestion*. The compiler and the JAX `jax.lax.scan` evaluator would spend >80% of their cycles just propagating signals along massive `VAR` chains or managing `BRG` Segment boundaries rather than doing actual arithmetic. 
 
