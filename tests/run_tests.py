@@ -9,7 +9,8 @@ def run_tests():
     examples_dir = os.path.join(project_root, "examples")
     print(f"Running Interaction Calculus Benchmark Suite...")
     
-    for steps in [10, 100, 200]:
+    # for steps in [10, 100, 200]:
+    for steps in [10]:
         log_file = f"test_logs_steps_{steps}.txt"
         print(f"\n--- Benchmarking --steps={steps} (Logging to {log_file}) ---")
         
@@ -19,6 +20,7 @@ def run_tests():
             # 1. Test raw .ic graphs via test_jax.py
             ic_files = [file for file in os.listdir(examples_dir) if file.endswith(".ic")]
             ic_files.sort()
+            # ic_files = []
             
             f.write("--- Raw IC Graph Tests (.ic) ---\n")
             for file in ic_files:

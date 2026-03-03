@@ -2,72 +2,6 @@
 
 --- Raw IC Graph Tests (.ic) ---
 
->> Executing: /Users/muaz/code/tensoric/examples/test_0.ic
-
-ERRORS:
-Traceback (most recent call last):
-  File "/Users/muaz/code/tensoric/tests/test_jax.py", line 3, in <module>
-    from tensoric.parser import parse_file
-  File "/Users/muaz/code/tensoric/tensoric/parser.py", line 2, in <module>
-    from staticic import *
-ModuleNotFoundError: No module named 'staticic'
-FAILED (Time: 0.03s)
-
->> Executing: /Users/muaz/code/tensoric/examples/test_1.ic
-
-ERRORS:
-Traceback (most recent call last):
-  File "/Users/muaz/code/tensoric/tests/test_jax.py", line 3, in <module>
-    from tensoric.parser import parse_file
-  File "/Users/muaz/code/tensoric/tensoric/parser.py", line 2, in <module>
-    from staticic import *
-ModuleNotFoundError: No module named 'staticic'
-FAILED (Time: 0.02s)
-
->> Executing: /Users/muaz/code/tensoric/examples/test_2.ic
-
-ERRORS:
-Traceback (most recent call last):
-  File "/Users/muaz/code/tensoric/tests/test_jax.py", line 3, in <module>
-    from tensoric.parser import parse_file
-  File "/Users/muaz/code/tensoric/tensoric/parser.py", line 2, in <module>
-    from staticic import *
-ModuleNotFoundError: No module named 'staticic'
-FAILED (Time: 0.03s)
-
->> Executing: /Users/muaz/code/tensoric/examples/test_3.ic
-
-ERRORS:
-Traceback (most recent call last):
-  File "/Users/muaz/code/tensoric/tests/test_jax.py", line 3, in <module>
-    from tensoric.parser import parse_file
-  File "/Users/muaz/code/tensoric/tensoric/parser.py", line 2, in <module>
-    from staticic import *
-ModuleNotFoundError: No module named 'staticic'
-FAILED (Time: 0.02s)
-
->> Executing: /Users/muaz/code/tensoric/examples/test_4.ic
-
-ERRORS:
-Traceback (most recent call last):
-  File "/Users/muaz/code/tensoric/tests/test_jax.py", line 3, in <module>
-    from tensoric.parser import parse_file
-  File "/Users/muaz/code/tensoric/tensoric/parser.py", line 2, in <module>
-    from staticic import *
-ModuleNotFoundError: No module named 'staticic'
-FAILED (Time: 0.03s)
-
->> Executing: /Users/muaz/code/tensoric/examples/test_5.ic
-
-ERRORS:
-Traceback (most recent call last):
-  File "/Users/muaz/code/tensoric/tests/test_jax.py", line 3, in <module>
-    from tensoric.parser import parse_file
-  File "/Users/muaz/code/tensoric/tensoric/parser.py", line 2, in <module>
-    from staticic import *
-ModuleNotFoundError: No module named 'staticic'
-FAILED (Time: 0.02s)
-
 
 --- Lisp Compiler Tests (.lisp) ---
 
@@ -75,68 +9,68 @@ FAILED (Time: 0.02s)
 Warming up JIT compiler for 10 steps...
 [JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
 
- (Done in 5.97383s)
-  [Scan 10 steps execution: 4.6717s]
-  [Scan 10 steps execution: 4.5278s]
-Execution Time (Exclusive JIT): 9.20050s
-Total Time (Inclusive JIT): 15.17433s
+ (Done in 5.00455s)
+  [Scan 10 steps execution: 4.0620s]
+  [Scan 10 steps execution: 3.3311s]
+Execution Time (Exclusive JIT): 7.39415s
+Total Time (Inclusive JIT): 12.39869s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [16 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 5.43797s)
-  [Scan 10 steps execution: 4.4050s]
-  [Scan 10 steps execution: 4.7115s]
-Execution Time (Exclusive JIT): 9.11675s
-Total Time (Inclusive JIT): 14.55472s
+Warming up JIT compiler for 10 steps... (Done in 3.31279s)
+  [Scan 10 steps execution: 3.4038s]
+  [Scan 10 steps execution: 3.4830s]
+Execution Time (Exclusive JIT): 6.88690s
+Total Time (Inclusive JIT): 10.19969s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [16 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 3.92034s)
-  [Scan 10 steps execution: 3.6859s]
-  [Scan 10 steps execution: 3.8998s]
-Execution Time (Exclusive JIT): 7.58592s
-Total Time (Inclusive JIT): 11.50626s
+Warming up JIT compiler for 10 steps... (Done in 4.06650s)
+  [Scan 10 steps execution: 3.5884s]
+  [Scan 10 steps execution: 3.4025s]
+Execution Time (Exclusive JIT): 6.99105s
+Total Time (Inclusive JIT): 11.05756s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [16 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 3.77846s)
-  [Scan 10 steps execution: 3.9934s]
-  [Scan 10 steps execution: 3.5543s]
-Execution Time (Exclusive JIT): 7.54788s
-Total Time (Inclusive JIT): 11.32634s
+Warming up JIT compiler for 10 steps... (Done in 3.27437s)
+  [Scan 10 steps execution: 4.1022s]
+  [Scan 10 steps execution: 3.4314s]
+Execution Time (Exclusive JIT): 7.53373s
+Total Time (Inclusive JIT): 10.80809s
 => <IC-closure: ((? λa.λb.b) λc.λd.c)>
 [17 graph interactions evaluated]
 
-SUCCESS (Time: 53.32s)
+SUCCESS (Time: 44.89s)
 
 >> Executing: /Users/muaz/code/tensoric/examples/math.lisp (256MB Arrays)
 Warming up JIT compiler for 10 steps...
 [JAX JIT TRACING] Compiling scan for steps=10 (Compile Count: 1)
 
- (Done in 3.89064s)
-  [Scan 10 steps execution: 3.7201s]
-  [Scan 10 steps execution: 3.4310s]
-Execution Time (Exclusive JIT): 7.15135s
-Total Time (Inclusive JIT): 11.04199s
+ (Done in 3.72165s)
+  [Scan 10 steps execution: 3.4583s]
+  [Scan 10 steps execution: 3.4739s]
+Execution Time (Exclusive JIT): 6.93257s
+Total Time (Inclusive JIT): 10.65422s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 3.94074s)
-  [Scan 10 steps execution: 4.1429s]
-  [Scan 10 steps execution: 3.8890s]
-Execution Time (Exclusive JIT): 8.03220s
-Total Time (Inclusive JIT): 11.97294s
+Warming up JIT compiler for 10 steps... (Done in 3.28131s)
+  [Scan 10 steps execution: 3.5867s]
+  [Scan 10 steps execution: 3.5658s]
+Execution Time (Exclusive JIT): 7.15281s
+Total Time (Inclusive JIT): 10.43412s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 3.55043s)
-  [Scan 10 steps execution: 3.8356s]
-  [Scan 10 steps execution: 3.3814s]
-Execution Time (Exclusive JIT): 7.21718s
-Total Time (Inclusive JIT): 10.76761s
+Warming up JIT compiler for 10 steps... (Done in 4.82569s)
+  [Scan 10 steps execution: 4.9776s]
+  [Scan 10 steps execution: 3.6097s]
+Execution Time (Exclusive JIT): 8.58767s
+Total Time (Inclusive JIT): 13.41336s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
-Warming up JIT compiler for 10 steps... (Done in 3.74232s)
-  [Scan 10 steps execution: 3.6110s]
-  [Scan 10 steps execution: 3.6961s]
-Execution Time (Exclusive JIT): 7.30733s
-Total Time (Inclusive JIT): 11.04965s
+Warming up JIT compiler for 10 steps... (Done in 3.32950s)
+  [Scan 10 steps execution: 3.3699s]
+  [Scan 10 steps execution: 3.3574s]
+Execution Time (Exclusive JIT): 6.72756s
+Total Time (Inclusive JIT): 10.05706s
 => <IC-closure: (((((? λa.?a{0:?;+:λb.?;}) λc.λd.λe.(((c d) e) ?)) λf.f) λg.λh.h) λi.λj.i)>
 [20 graph interactions evaluated]
 
-SUCCESS (Time: 45.69s)
+SUCCESS (Time: 45.40s)

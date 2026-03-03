@@ -1,4 +1,4 @@
-from tensoric.staticic import *
+from .staticic import *
 
 DP0_TYPE = 100
 DP1_TYPE = 101

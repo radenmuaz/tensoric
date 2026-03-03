@@ -1,0 +1,225 @@
+=== Benchmarks (Scan Steps: 200) ===
+
+--- Raw IC Graph Tests (.ic) ---
+
+>> Executing: /Users/muaz/code/tensoric/examples/test_0.ic
+Initial Term:
+! &0{a28,b29} = λk.(a30 ([cyclic @102] k));
+! &0{a30,b31} = λl.(a32 ([cyclic @96] l));
+! &0{a32,b33} = λm.(a34 ([cyclic @90] m));
+! &0{a34,b35} = λn.(a36 ([cyclic @84] n));
+! &0{a36,b37} = λo.(a38 ([cyclic @78] o));
+! &0{a38,b39} = λp.(a40 ([cyclic @72] p));
+! &0{a40,b41} = λq.(a42 ([cyclic @66] q));
+! &0{a42,b43} = λr.(a44 ([cyclic @60] r));
+! &0{a44,b45} = λs.(a46 ([cyclic @54] s));
+! &0{a46,b47} = λt.(a48 ([cyclic @48] t));
+! &0{a48,b49} = λu.(a50 ([cyclic @42] u));
+! &0{a50,b51} = λv.(a52 ([cyclic @36] v));
+! &0{a52,b53} = λw.(a54 ([cyclic @30] w));
+! &0{a54,b55} = λx.(a56 ([cyclic @24] x));
+! &0{a56,b57} = λy.(a58 ([cyclic @18] y));
+! &0{a58,b59} = λz.(a60 ([cyclic @12] z));
+! &0{a60,b61} = λaa.(a62 ([cyclic @6] aa));
+! &0{a62,b63} = λab.(a64 ([cyclic @5] ab));
+! &0{a64,b65} = i;
+(λa.((a λb.((b λc.λd.d) λe.λf.e)) λg.λh.g) λi.λj.(a28 ([cyclic @108] j)))
+Warming up JIT compiler for 200 steps...
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+JIT Compilation Time: 2.15553s
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 2)
+
+ERROR: JAX Recompilation Detected!
+  [Scan 200 steps execution: 2.0495s]
+  [Scan 200 steps execution: 1.8255s]
+Final Term:
+! &0{a20,b21} = λc.(a22 ([cyclic @102] c));
+! &0{a22,b23} = λd.(a24 ([cyclic @96] d));
+! &0{a24,b25} = λe.(a26 ([cyclic @90] e));
+! &0{a26,b27} = λf.(a28 ([cyclic @84] f));
+! &0{a28,b29} = λg.(a30 ([cyclic @78] g));
+! &0{a30,b31} = λh.(a32 ([cyclic @72] h));
+! &0{a32,b33} = λi.(a34 ([cyclic @66] i));
+! &0{a34,b35} = λj.(a36 ([cyclic @60] j));
+! &0{a36,b37} = λk.(a38 ([cyclic @54] k));
+! &0{a38,b39} = λl.(a40 ([cyclic @48] l));
+! &0{a40,b41} = λm.(a42 ([cyclic @42] m));
+! &0{a42,b43} = λn.(a44 ([cyclic @36] n));
+! &0{a44,b45} = λo.(a46 ([cyclic @30] o));
+! &0{a46,b47} = λp.(a48 ([cyclic @24] p));
+! &0{a48,b49} = λq.(a50 ([cyclic @18] q));
+! &0{a50,b51} = λr.(a52 ([cyclic @12] r));
+! &0{a52,b53} = λs.(a54 ([cyclic @6] s));
+! &0{a54,b55} = λt.(a56 ([cyclic @5] t));
+! &0{a56,b57} = a;
+(? λa.λb.(a20 ([cyclic @108] b)))
+WORK: 1 interactions
+TIME: 3.8750780 seconds
+
+SUCCESS (Time: 6.38s)
+
+>> Executing: /Users/muaz/code/tensoric/examples/test_1.ic
+Initial Term:
+! &0{a2,b3} = a;
+λa.λb.(a2 ([cyclic @3] b))
+Warming up JIT compiler for 200 steps...
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+JIT Compilation Time: 2.17755s
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 2)
+
+ERROR: JAX Recompilation Detected!
+  [Scan 200 steps execution: 2.0345s]
+Final Term:
+! &0{a2,b3} = a;
+λa.λb.(a2 ([cyclic @3] b))
+WORK: 0 interactions
+TIME: 2.0345571 seconds
+
+SUCCESS (Time: 4.52s)
+
+>> Executing: /Users/muaz/code/tensoric/examples/test_2.ic
+Initial Term:
+λa.((a λb.c) λc.b)
+Warming up JIT compiler for 200 steps...
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+JIT Compilation Time: 2.27448s
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 2)
+
+ERROR: JAX Recompilation Detected!
+  [Scan 200 steps execution: 2.0050s]
+Final Term:
+λa.((a λb.c) λc.b)
+WORK: 0 interactions
+TIME: 2.0050030 seconds
+
+SUCCESS (Time: 4.60s)
+
+>> Executing: /Users/muaz/code/tensoric/examples/test_3.ic
+Initial Term:
+! &0{a2,b3} = a;
+! &0{a4,b5} = b3;
+λa.λb.([cyclic @5] (a4 ([cyclic @8] b)))
+Warming up JIT compiler for 200 steps...
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+JIT Compilation Time: 2.20357s
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 2)
+
+ERROR: JAX Recompilation Detected!
+  [Scan 200 steps execution: 1.8743s]
+Final Term:
+! &0{a2,b3} = a;
+! &0{a4,b5} = b3;
+λa.λb.([cyclic @5] (a4 ([cyclic @8] b)))
+WORK: 0 interactions
+TIME: 1.8743489 seconds
+
+SUCCESS (Time: 4.48s)
+
+>> Executing: /Users/muaz/code/tensoric/examples/test_4.ic
+Initial Term:
+! &0{a41,b42} = e;
+! &0{a43,b44} = b42;
+! &0{a45,b46} = v;
+! &1{a47,b48} = λao.(an (a49 [cyclic @7]));
+! &1{a49,b50} = ao;
+(λa.(λb.(λc.(λd.(λe.(λf.([cyclic @93] (a43 ([cyclic @96] f))) λg.λh.λi.(g λj.λk.λl.(j λm.λn.λo.(m λp.λq.λr.(p λs.λt.λu.u))))) (a λv.λw.(((w λx.λy.λz.λaa.(z (a45 x))) λab.λac.λad.λae.(ac ([cyclic @57] ab))) λaf.λag.λah.ah))) λai.((ai c) b)) λaj.λak.ak) λal.λam.al) λan.(a47 [cyclic @5]))
+Warming up JIT compiler for 200 steps...
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+JIT Compilation Time: 2.14043s
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 2)
+
+ERROR: JAX Recompilation Detected!
+  [Scan 200 steps execution: 1.8740s]
+  [Scan 200 steps execution: 1.8911s]
+Final Term:
+! &1{a2,b3} = λb.(a (a4 [cyclic @7]));
+! &1{a4,b5} = b;
+(? λa.(a2 [cyclic @5]))
+WORK: 6 interactions
+TIME: 3.7651911 seconds
+
+SUCCESS (Time: 6.22s)
+
+>> Executing: /Users/muaz/code/tensoric/examples/test_5.ic
+Initial Term:
+λa.?a{0:0;+:&0{[cyclic @1],[cyclic @2]};}
+Warming up JIT compiler for 200 steps...
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+JIT Compilation Time: 2.12987s
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 2)
+
+ERROR: JAX Recompilation Detected!
+  [Scan 200 steps execution: 1.8523s]
+Final Term:
+λa.?a{0:0;+:&0{[cyclic @1],[cyclic @2]};}
+WORK: 0 interactions
+TIME: 1.8523209 seconds
+
+SUCCESS (Time: 4.29s)
+
+
+--- Lisp Compiler Tests (.lisp) ---
+
+>> Executing: /Users/muaz/code/tensoric/examples/bool.lisp (256MB Arrays)
+
+Evaluating: List([Sym(and), Sym(true), Sym(false)])
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+=> <IC-closure: (? λa.λb.a)>
+[16 graph interactions evaluated]
+
+Evaluating: List([Sym(xor), Sym(true), Sym(true)])
+=> <IC-closure: (? λa.λb.a)>
+[16 graph interactions evaluated]
+
+Evaluating: List([Sym(xor), Sym(false), Sym(true)])
+=> <IC-closure: (? λa.λb.a)>
+[16 graph interactions evaluated]
+
+Evaluating: List([Sym(for_loop), List([Sym(suc), List([Sym(suc), List([Sym(suc), Num(0)])])]), Sym(add2), Num(0)])
+=> <IC-closure: (? λa.λb.a)>
+[17 graph interactions evaluated]
+
+SUCCESS (Time: 14.88s)
+
+>> Executing: /Users/muaz/code/tensoric/examples/math.lisp (256MB Arrays)
+
+Evaluating: List([Sym(fact), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), Num(0)])])])])])
+
+[JAX JIT TRACING] Compiling scan for steps=200 (Compile Count: 1)
+
+=> <IC-closure: (? λa.λb.a)>
+[20 graph interactions evaluated]
+
+Evaluating: List([Sym(fact_iter), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), Num(0)])])])])])
+=> <IC-closure: (? λa.λb.a)>
+[20 graph interactions evaluated]
+
+Evaluating: List([Sym(fib), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), Num(0)])])])])])])])
+=> <IC-closure: (? λa.λb.a)>
+[20 graph interactions evaluated]
+
+Evaluating: List([Sym(fib_iter), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), List([Sym(suc), Num(0)])])])])])])])
+=> <IC-closure: (? λa.λb.a)>
+[20 graph interactions evaluated]
+
+SUCCESS (Time: 14.83s)
