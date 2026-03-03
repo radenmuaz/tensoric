@@ -904,9 +904,9 @@ When we encode *numbers themselves* as pure graphs (like the Hex Abacus or Topo-
 
 How feasible is this architecture in practice?
 
-#### Case A: Consumer Hardware (Gaming PCs & Consoles)
-*   **The Physics / Rendering Constraint:** A modern gaming PC (e.g., RTX 4090) processes physics and graphics using extremely dense, contiguous matrices of `float32` arrays to compute billions of ray intersections or vertex shading operations per second. 
-*   **Feasibility:** **Extremely Poor.** Running a pure IC `uint8` topological number format on a consumer PC would be a disastrous mismatch. The CPU/GPU memory bandwidth would saturate instantly trying to traverse physical pointer chains just to add two colors together. For consumer gaming/graphics, the **Out-of-Band (OOB)** approach (Section 12.3) with standard JAX tensors is strictly mandatory. Pure IC numbers cannot compete with a modern hardware rendering ALU.
+#### Case A: Real-Time Gaming & Interactive Graphics
+*   **The Render/Physics Constraint:** Modern gaming (whether on Consoles, VR headsets, or PCs) requires updating millions of pixels and physics bodies at $60+$ FPS. This mandates executing billions of ray intersections, matrix spatial transforms, and vertex shading operations per second. 
+*   **Feasibility:** **Extremely Poor.** Running a pure IC `uint8` topological number format for real-time graphics would be a disastrous mismatch. The execution substrate's memory bandwidth would saturate instantly trying to sequentially traverse physical pointer chains just to add $X, Y, Z$ geometry coordinates together. For general consumer gaming and graphics, the **Out-of-Band (OOB)** approach (Section 12.3) using dense standard float arrays is strictly mandatory. Pure spatial IC numbers cannot compete with a modern hardware rendering ALU.
 
 #### Case B: LLM Inference 
 *   **The Memory-Bound Constraint:** LLM Inference is famously strictly memory-bandwidth bound. ALUs sit idle waiting for weights to load from VRAM. Furthermore, LLM weights are aggressively quantized (e.g., FP8, INT4) and clustered near $0$.
